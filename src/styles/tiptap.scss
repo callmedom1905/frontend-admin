@@ -1,0 +1,66 @@
+.my-tiptap .ProseMirror {
+  min-height: 500px;
+  max-height: 662px;
+  overflow-y: auto;
+  font-size: 1.25rem;
+  padding: 24px;
+  border-radius: 0.75rem;
+  outline: none;
+  background: #fff;
+  word-break: break-word;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+}
+
+
+.my-tiptap .ProseMirror h1 {
+  font-size: 2rem;
+  font-weight: 400;
+}
+
+.my-tiptap .ProseMirror ul {
+  list-style: disc;
+  margin-left: 2em;
+}
+
+.my-tiptap .ProseMirror blockquote {
+  border-left: 4px solid #2563eb;
+  padding-left: 1em;
+  color: #555;
+  background: #f3f4f6;
+}
+
+.ck-content {
+  min-height: 500px;
+  max-height: 662px;
+  overflow-y: auto;
+  font-size: 1.25rem;
+  padding: 23px !important;
+  border-radius: 0.75rem;
+  outline: none;
+  background: #fff;
+  word-break: break-word;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+}
+.ck-content:focus {
+  border: 1px solid #E6C67A !important;
+  box-shadow: 0 0 2px 1px rgba(230, 198, 122, 0.5) !important;
+}
+.ck-content h1 {
+  font-size: 2.25rem;
+  font-weight: 400;
+  margin: 1.5rem 0 1rem 0;
+}
+
+.ck-content h2 {
+  font-size: 1.75rem;
+  font-weight: 400;
+  margin: 1.2rem 0 0.8rem 0;
+}
+
+.ck-content h3 {
+  font-size: 1.3rem;
+  font-weight: 400;
+  margin: 1rem 0 0.6rem 0;
+}

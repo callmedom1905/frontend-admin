@@ -1,0 +1,267 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "id_role": 1,
+      "name": "Nguyễn Văn A",
+      "email": "nguyenvana@example.com",
+      "profile_image": "user-01.jpg",
+      "phone": "0912345678",
+      "password": "$2y$10$abc123fakehashhere", 
+      "remember_token": "abc123token",
+      "active": "Active",
+      "created_at": "2025-05-20T08:00:00Z",
+      "updated_at": "2025-05-20T08:00:00Z",
+      "deleted_at": null
+    },
+    {
+      "id": 2,
+      "id_role": 2,
+      "name": "Trần Thị B",
+      "email": "tranthib@example.com",
+      "profile_image": "user-02.jpg",
+      "phone": "0987654321",
+      "password": "$2y$10$def456anotherhash",
+      "remember_token": "def456token",
+      "active": "Pending",
+      "created_at": "2025-05-21T09:30:00Z",
+      "updated_at": "2025-05-22T10:00:00Z",
+      "deleted_at": null
+    },
+    {
+      "id": 3,
+      "id_role": 2,
+      "name": "Phạm Văn C",
+      "email": "phamvanc@example.com",
+      "profile_image": "user-03.jpg",
+      "phone": "0934567890",
+      "password": "$2y$10$xyz789hashforuserc",
+      "remember_token": "xyz789token",
+      "active": "Cance",
+      "created_at": "2025-05-22T11:00:00Z",
+      "updated_at": "2025-05-24T15:00:00Z",
+      "deleted_at": "2025-05-25T12:00:00Z"
+    }
+  ],
+  "roles": [
+    { "id": 1, "name": "Admin" },
+    { "id": 2, "name": "Staff" },
+    { "id": 3, "name": "Customer" }
+  ],
+  "permissions": [
+    { "id": 1, "name": "view_orders" },
+    { "id": 2, "name": "edit_orders" },
+    { "id": 3, "name": "manage_users" }
+  ],
+  "roles_have_permissions": [
+    { "role_id": 1, "permission_id": 1 },
+    { "role_id": 1, "permission_id": 2 },
+    { "role_id": 1, "permission_id": 3 },
+    { "role_id": 2, "permission_id": 1 },
+    { "role_id": 2, "permission_id": 2 }
+  ],
+  "tables": [
+    {
+      "id": 1,
+      "name": "Bàn số 1",
+      "status": "available",
+      "created_at": "2025-05-20T08:00:00Z",
+      "updated_at": "2025-05-25T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "Bàn số 2",
+      "status": "occupied",
+      "created_at": "2025-05-20T08:00:00Z",
+      "updated_at": "2025-05-25T10:00:00Z"
+    },
+    {
+      "id": 3,
+      "name": "Bàn số 3",
+      "status": "reserved",
+      "created_at": "2025-05-21T08:30:00Z",
+      "updated_at": "2025-05-26T08:30:00Z"
+    },
+    {
+      "id": 4,
+      "name": "Bàn VIP",
+      "status": "available",
+      "created_at": "2025-05-21T09:00:00Z",
+      "updated_at": "2025-05-27T07:00:00Z"
+    }
+  ],
+"orders": [
+    {
+      "id": "bf8f",
+      "id_table": "1",
+      "id_user": 1,
+      "id_voucher": 1,
+      "name_user": "Gia Bảo",
+      "phone": "0816257412",
+      "time": "18:00",
+      "date": "2025-06-10",
+      "number_table": 1,
+      "capacity": 4,
+      "status": 3,
+      "payment": 1,
+      "status_deposit": 1,
+      "products": [
+        {
+          "product_id": "3",
+          "quantity": 1
+        },
+        {
+          "product_id": "4",
+          "quantity": 1
+        }
+      ],
+      "created_at": "2025-06-07T13:36:59.582Z",
+      "updated_at": "2025-06-08T11:31:47.828Z"
+    },
+        {
+      "id": "bf81",
+      "id_table": "11",
+      "id_user": 1,
+      "id_voucher": 1,
+      "name_user": "Gia Bảo",
+      "phone": "0816257412",
+      "time": "18:00",
+      "date": "2025-06-10",
+      "number_table": 11,
+      "capacity": 4,
+      "status": 3,
+      "payment": 1,
+      "status_deposit": 1,
+      "products": [
+        {
+          "product_id": "3",
+          "quantity": 1
+        },
+        {
+          "product_id": "4",
+          "quantity": 1
+        }
+      ],
+      "created_at": "2025-06-07T13:36:59.582Z",
+      "updated_at": "2025-06-08T11:31:47.828Z"
+    },
+    {
+      "id": "bf88",
+      "id_table": "12",
+      "id_user": 1,
+      "id_voucher": 1,
+      "name_user": "Gia Bảo",
+      "phone": "0816257412",
+      "time": "18:00",
+      "date": "2025-06-10",
+      "number_table": 12,
+      "capacity": 6,
+      "status": 1,
+      "payment": 1,
+      "status_deposit": 1,
+      "products": [
+        {
+          "product_id": "3",
+          "quantity": 1
+        },
+        {
+          "product_id": "4",
+          "quantity": 1
+        }
+      ],
+      "created_at": "2025-06-07T13:36:59.582Z",
+      "updated_at": "2025-06-08T11:31:47.828Z"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "total_amount": 55000,
+      "status": "completed",
+      "created_at": "2025-05-26T08:30:00Z",
+      "updated_at": "2025-05-26T09:00:00Z"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "total_amount": 40000,
+      "status": "pending",
+      "created_at": "2025-05-27T10:00:00Z",
+      "updated_at": "2025-05-27T10:05:00Z"
+    },
+    {
+      "id": 4,
+      "user_id": 1,
+      "total_amount": 120000,
+      "status": "canceled",
+      "created_at": "2025-05-28T07:00:00Z",
+      "updated_at": "2025-05-28T07:10:00Z"
+    }
+  ],
+  "order_items": [
+    { "id": 1, "order_id": 1, "product_id": 1, "quantity": 2, "price": 100000 },
+    { "id": 2, "order_id": 1, "product_id": 2, "quantity": 1, "price": 300000 },
+    { "id": 3, "order_id": 2, "product_id": 3, "quantity": 1, "price": 300000 }
+  ],
+"products": [
+    {
+      "id": 1,
+      "name": "Trà đào cam sả",
+      "price": 35000,
+      "category_id": 1,
+      "description": "Trà đào thơm mát với cam và sả tươi",
+      "image": "tra_dao.jpg",
+      "created_at": "2025-05-01T09:00:00Z",
+      "updated_at": "2025-05-01T10:00:00Z",
+      "is_active": true
+    },
+    {
+      "id": 2,
+      "name": "Cà phê sữa đá",
+      "price": 25000,
+      "category_id": 1,
+      "description": "Cà phê rang xay truyền thống với sữa đặc",
+      "image": "ca_phe_sua.jpg",
+      "created_at": "2025-05-02T08:00:00Z",
+      "updated_at": "2025-05-02T08:30:00Z",
+      "is_active": true
+    },
+    {
+      "id": 3,
+      "name": "Bánh mì thịt nguội",
+      "price": 20000,
+      "category_id": 2,
+      "description": "Bánh mì giòn rụm với thịt nguội và rau",
+      "image": "banh_mi_thit.jpg",
+      "created_at": "2025-05-02T11:00:00Z",
+      "updated_at": "2025-05-02T11:05:00Z",
+      "is_active": true
+    },
+    {
+      "id": 4,
+      "name": "Bánh kem socola",
+      "price": 40000,
+      "category_id": 2,
+      "description": "Bánh kem socola mềm mịn, ngọt ngào",
+      "image": "banh_kem.jpg",
+      "created_at": "2025-05-03T10:00:00Z",
+      "updated_at": "2025-05-03T10:10:00Z",
+      "is_active": false
+    }
+  ],
+  "categories": [
+    { "id": 1, "name": "Đồ uống" },
+    { "id": 2, "name": "Đồ ăn" }
+  ],
+  "payments": [
+    { "id": 1, "order_id": 1, "method": "cash", "amount": 500000, "payment_date": "2025-05-28T12:00:00Z" },
+    { "id": 2, "order_id": 2, "method": "credit_card", "amount": 300000, "payment_date": null }
+  ],
+  "vouchers": [
+    { "id": 1, "code": "GIAM10", "discount": 10, "expiry_date": "2025-12-31" },
+    { "id": 2, "code": "FREESHIP", "discount": 0, "expiry_date": "2025-06-30" }
+  ],
+  "posts": [
+    { "id": 1, "title": "Khuyến mãi tháng 5", "content": "Giảm giá lên tới 30%", "created_at": "2025-05-01" },
+    { "id": 2, "title": "Thực đơn mới", "content": "Thêm các món bánh ngọt", "created_at": "2025-05-15" }
+  ]
+}
