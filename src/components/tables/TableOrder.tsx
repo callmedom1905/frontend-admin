@@ -361,7 +361,7 @@ export default function BasicTableOne() {
               key={idx}
               className={`px-3 py-1 rounded border ${
                 currentPage === pageNumber 
-                  ? "bg-blue-600 text-white" 
+                  ? "bg-[#3E2723] text-white" 
                   : "bg-gray-100 hover:bg-gray-200"
               }`}
               onClick={() => setCurrentPage(pageNumber)}

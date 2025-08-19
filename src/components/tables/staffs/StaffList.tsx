@@ -408,7 +408,7 @@ const StaffList: React.FC<StaffListProps> = ({ onEditStaff, onViewStaff, onDelet
                       </td>
                     </tr>
                   )}
-                  {filteredStaffs.map((staff, idx) => (
+                  {filteredStaffs.map((staff) => (
                     <TableRow
                       key={staff.id}
                       className="group hover:bg-gray-50 transition rounded-xl"
@@ -473,7 +473,9 @@ const StaffList: React.FC<StaffListProps> = ({ onEditStaff, onViewStaff, onDelet
             )}
           </div>
         </div>
-        {/* Pagination */}
+       
+      </div>
+       {/* Pagination */}
         <div className="flex justify-center items-center gap-2 mt-4">
           {totalPages > 0 ? (
             <>
@@ -527,7 +529,6 @@ const StaffList: React.FC<StaffListProps> = ({ onEditStaff, onViewStaff, onDelet
             </div>
           )}
         </div>
-      </div>
       {viewStaff && (
         <NotificationModal
           open={confirmHide.open}
