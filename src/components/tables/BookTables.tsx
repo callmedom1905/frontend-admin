@@ -76,7 +76,7 @@ export default function BookTables() {
   });
 
   // Kiểm tra quyền
-  const isManager = user?.id_role === 1;
+  const isManager = String(user?.id_role) === "1";
 
   // Hàm lọc bàn theo điều kiện tìm kiếm
   const filteredTables = tables.filter((table) => {
