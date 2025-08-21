@@ -3,7 +3,6 @@ import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
-import Image from "next/image";
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import { Be_Vietnam_Pro } from "next/font/google";
@@ -115,14 +114,14 @@ const AppHeader: React.FC = () => {
           </button>
 
           <Link href="/" className="lg:hidden">
-            <Image
+            <img
               width={100}
               height={32}
               className="dark:hidden"
               src="/images/logo/res.png"
               alt="Logo"
             />
-            <Image
+            <img
               width={100}
               height={32}
               className="hidden dark:block"
@@ -164,7 +163,7 @@ const AppHeader: React.FC = () => {
                     >
                       {item._type === "user" ? (
                         <>
-                          <Image
+                          <img
                             src={
                               item.profile_image?.startsWith("http") ||
                               item.profile_image?.startsWith("/")
@@ -183,7 +182,7 @@ const AppHeader: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <Image
+                          <img
                             src={
                               item.image?.startsWith("http") ||
                               item.image?.startsWith("/")

@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { FiGlobe, FiGithub, FiTwitter, FiInstagram, FiFacebook } from "react-icons/fi";
 
@@ -35,7 +34,7 @@ export default function UserMetaCard() {
     <div className="rounded-lg border border-stroke bg-white shadow-default dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="p-6 text-center border-b border-stroke dark:border-gray-800">
             <div className="relative mx-auto mb-4 h-32 w-32">
-                <Image
+                <img
                     width={128}
                     height={128}
                     src={`/images/user/${user.profile_image || 'user-01.jpg'}`}

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import React from "react";
 
 interface AvatarProps {
@@ -41,7 +40,7 @@ const Avatar: React.FC<AvatarProps> = ({
   return (
     <div className={`relative  rounded-full ${sizeClasses[size]}`}>
       {/* Avatar Image */}
-      <Image
+      <img
         width="0"
         height="0"
         sizes="100vw"

@@ -1,6 +1,5 @@
 import React from "react";
 import { Modal } from "../../ui/modal";
-import Image from "next/image";
 import { FiUser, FiMail, FiPhone, FiCalendar, FiShield } from "react-icons/fi";
 import Badge from "../../ui/badge/Badge";
 
@@ -58,7 +57,7 @@ function StaffDetailModal({ isOpen, onClose, staff }: StaffDetailModalProps) {
             <div className="flex items-start gap-6">
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
                 {staff.profile_image ? (
-                  <Image
+                  <img
                     width={96}
                     height={96}
                     src={

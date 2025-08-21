@@ -8,13 +8,10 @@ import {
   TableRow,
 } from "../ui/table";
 import { Modal } from "../ui/modal";
-import { useModal } from "../../hooks/useModal";
 import Badge from "../ui/badge/Badge";
-import Image from "next/image";
-import Link from "next/link";
 import { toast } from "react-toastify";
 import apiClientBase from "@/lib/apiClient";
-import { FiUser, FiMail, FiPhone, FiLock, FiUserCheck, FiCalendar, FiShield } from "react-icons/fi";
+import { FiUser, FiMail, FiPhone, FiCalendar, FiShield } from "react-icons/fi";
 import UserFilter from "./users/UserFilter";
 import NotificationModal from "./NotificationModal";
 
@@ -320,7 +317,7 @@ function UserDetailModal({ isOpen, onClose, user }: {
             <div className="flex items-start gap-6">
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
                 {user.profile_image ? (
-                  <Image
+                  <img
                     width={96}
                     height={96}
                     src={
@@ -654,7 +651,7 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
                     <TableCell className="px-4 py-3 hidden [@media(min-width:400px)]:table-cell">
                       <div className="w-12 h-12 rounded-full overflow-Block bg-gray-100 flex items-center justify-center">
                         {user.profile_image ? (
-                          <Image
+                          <img
                             width={48}
                             height={48}
                             src={

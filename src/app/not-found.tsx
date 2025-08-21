@@ -1,5 +1,4 @@
 import GridShape from "@/components/common/GridShape";
-import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
@@ -12,14 +11,14 @@ export default function NotFound() {
           ERROR
         </h1>
 
-        <Image
+        <img
           src="/images/error/404.svg"
           alt="404"
           className="dark:hidden"
           width={472}
           height={152}
         />
-        <Image
+        <img
           src="/images/error/404-dark.svg"
           alt="404"
           className="hidden dark:block"
