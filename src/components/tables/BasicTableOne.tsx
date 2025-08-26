@@ -585,7 +585,6 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
     try {
       const newStatus = user.status === "1" ? 0 : 1;
       await apiClientBase.put(`/users/${user.id}`, { status: newStatus });
-      setIsPageLoading(true);
       // toast.success("Đã đổi trạng thái thành công");
       setModalState({
         open: true,
@@ -598,6 +597,8 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
       setUsers(users =>
         users.map(u => u.id === user.id ? { ...u, status: newStatus } : u)
       );
+      //tải lại trang
+      window.location.reload();
     } catch (error) {
       // toast.error("Đổi trạng thái thất bại");
       setModalState({
