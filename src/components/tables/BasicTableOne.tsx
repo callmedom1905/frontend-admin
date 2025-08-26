@@ -585,6 +585,7 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
     try {
       const newStatus = user.status === "1" ? 0 : 1;
       await apiClientBase.put(`/users/${user.id}`, { status: newStatus });
+      setIsPageLoading(true);
       // toast.success("Đã đổi trạng thái thành công");
       setModalState({
         open: true,
