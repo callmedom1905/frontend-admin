@@ -583,18 +583,17 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
 
   const handleToggleStatus = async (user: IUser) => {
     try {
-      const newStatus = user.status === "1" ? 0 : 1;
+      const newStatus = user.status === "1" ? "0" : "1";
       await apiClientBase.put(`/users/${user.id}`, { status: newStatus });
       // toast.success("Đã đổi trạng thái thành công");
       setModalState({
         open: true,
         title: "Đổi trạng thái thành công!",
-        description: `Trạng thái người dùng đã được đổi thành ${newStatus === 1 ? "Đang hoạt động" : "Ngừng hoạt động"}.`,
+        description: `Trạng thái người dùng đã được đổi thành ${newStatus === "1" ? "Đang hoạt động" : "Ngừng hoạt động"}.`,
         emoji: <span style={{ fontSize: 28 }}>✅</span>,
         acceptText: "OK",
         onAccept: () => {
           setModalState(prev => ({ ...prev, open: false }));
-          window.location.reload();
 
         },
 
