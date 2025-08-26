@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
+import Image from "next/image";
 import { IProduct } from "../../model/type";
 import { Modal } from "../ui/modal";
 import apiClientBase from "@/lib/apiClient";
@@ -37,6 +38,7 @@ export default function Menu() {
   });
   const [editId, setEditId] = useState<number | string | null>(null);
   const [formVisible, setFormVisible] = useState(false);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   // State cho danh sách loại món ăn
   const [categories, setCategories] = useState<{ id: string | number; name: string }[]>([]);
@@ -44,20 +46,25 @@ export default function Menu() {
   // State cho bộ lọc
   const [filterName, setFilterName] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string | number | "">("");
+  const [sortOption, setSortOption] = useState<
+    "default" | "price_asc" | "price_desc" | "name_asc" | "name_desc" | "sold_desc"
+  >("default");
 
   // State cho phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const perPage = 10;
 
   // State cho hiển thị sản phẩm đã xóa
   const [showTrashed, setShowTrashed] = useState(false);
-  const [trashedProducts, setTrashedProducts] = useState<IProduct[]>([]);
-  const [loadingTrashed, setLoadingTrashed] = useState(false);
 
-  // State cho danh mục đã xóa mềm
-  const [trashedCategories, setTrashedCategories] = useState<{ id: string | number; name: string }[]>([]);
-  const [loadingTrashedCategories, setLoadingTrashedCategories] = useState(false);
+  // State cho dữ liệu từ API lọc theo trạng thái
+  const [filteredByStatusProducts, setFilteredByStatusProducts] = useState<IProduct[]>([]);
+  const [loadingStatusFilter, setLoadingStatusFilter] = useState(false);
+
+  // State cho dữ liệu từ API lọc theo danh mục
+  const [filteredByCategoryProducts, setFilteredByCategoryProducts] = useState<IProduct[]>([]);
+  const [loadingCategoryFilter, setLoadingCategoryFilter] = useState(false);
 
   // State cho modal thông báo khi submit form
   const [modalState, setModalState] = useState<{
@@ -121,6 +128,81 @@ export default function Menu() {
     fetchCategories();
   }, []);
 
+  // Hàm gọi API lọc theo trạng thái
+  const fetchProductsByStatus = async (status: string) => {
+    if (status === "") {
+      setFilteredByStatusProducts([]);
+      return;
+    }
+    
+    setLoadingStatusFilter(true);
+    try {
+      const url = status === "1" ? "/products/filter/active" : "/products/filter/inactive";
+      const res = await apiClientBase.get(url);
+      const list = Array.isArray(res.data?.data) 
+        ? (res.data.data as Array<IProduct & { status: boolean | number }>)
+        : [];
+      
+      const processedList = list.map((item) => {
+        let is_active = false;
+        if (typeof item.status === "boolean") {
+          is_active = item.status === true;
+        } else if (typeof item.status === "number") {
+          is_active = item.status === 1;
+        }
+        return {
+          ...item,
+          id_category: item.id_category ?? item.id_category,
+          is_active,
+        } as IProduct & { is_active: boolean };
+      });
+      
+      setFilteredByStatusProducts(processedList);
+    } catch (error) {
+      toast.error("Không thể tải dữ liệu lọc theo trạng thái!");
+      setFilteredByStatusProducts([]);
+    } finally {
+      setLoadingStatusFilter(false);
+    }
+  };
+
+  // Hàm gọi API lọc theo danh mục
+  const fetchProductsByCategory = async (categoryId: string | number) => {
+    if (categoryId === "") {
+      setFilteredByCategoryProducts([]);
+      return;
+    }
+    
+    setLoadingCategoryFilter(true);
+    try {
+      const res = await apiClientBase.get(`/products/category/${categoryId}`);
+      const list = Array.isArray(res.data) 
+        ? (res.data as Array<IProduct & { status: boolean | number }>)
+        : [];
+      
+      const processedList = list.map((item) => {
+        let is_active = false;
+        if (typeof item.status === "boolean") {
+          is_active = item.status === true;
+        } else if (typeof item.status === "number") {
+          is_active = item.status === 1;
+        }
+        return {
+          ...item,
+          id_category: item.id_category ?? item.id_category,
+          is_active,
+        } as IProduct & { is_active: boolean };
+      });
+      
+      setFilteredByCategoryProducts(processedList);
+    } catch (error) {
+      toast.error("Không thể tải dữ liệu lọc theo danh mục!");
+      setFilteredByCategoryProducts([]);
+    } finally {
+      setLoadingCategoryFilter(false);
+    }
+  };
+
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -172,31 +254,16 @@ export default function Menu() {
     fetchProducts();
   }, [currentPage]);
 
-  // Lấy danh sách sản phẩm đã xóa mềm
-  const fetchTrashedProducts = async () => {
-    setLoadingTrashed(true);
-    try {
-      const res = await apiClientBase.get("/products/trashed");
-      const data = Array.isArray(res.data) ? res.data : [];
-      setTrashedProducts(data);
-    } catch (err) {
-      alert("Không thể tải danh sách sản phẩm đã xóa!");
-    }
-    setLoadingTrashed(false);
-  };
+  // Gọi API lọc theo trạng thái khi filterStatus thay đổi
+  useEffect(() => {
+    fetchProductsByStatus(filterStatus);
+  }, [filterStatus]);
 
-  // Lấy danh mục đã xóa mềm
-  const fetchTrashedCategories = async () => {
-    setLoadingTrashedCategories(true);
-    try {
-      const res = await apiClientBase.get("/categories/trashed");
-      const data = Array.isArray(res.data) ? res.data : [];
-      setTrashedCategories(data);
-    } catch (err) {
-      alert("Không thể tải danh mục đã xóa!");
-    }
-    setLoadingTrashedCategories(false);
-  };
+  // Gọi API lọc theo danh mục khi filterCategory thay đổi
+  useEffect(() => {
+    fetchProductsByCategory(filterCategory);
+  }, [filterCategory]);
+
 
   // Cập nhật handleSubmit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -276,68 +343,6 @@ export default function Menu() {
     }
   };
 
-  // Cập nhật handleDelete
-  const handleDelete = async (id: number | string) => {
-     // if (!window.confirm("Bạn có chắc chắn muốn xóa món này?")) return;
-    try {
-      await apiClientBase.delete(`/product/${id}`);
-      toast.success("Đã xóa món ăn thành công!");
-      // Tải lại dữ liệu sau khi xóa
-      fetchProducts();
-    } catch (err) {
-      toast.error("Xóa thất bại!");
-    }
-  };
-
-  // Cập nhật handleRestore
-  const handleRestore = async (id: number | string) => {
-    if (!window.confirm("Khôi phục sản phẩm này?")) return;
-    try {
-      await apiClientBase.post(`/product/${id}/restore`, {});
-      toast.success("Khôi phục sản phẩm thành công!");
-      // Tải lại cả danh sách đã xóa và danh sách chính
-      fetchTrashedProducts();
-      fetchProducts();
-    } catch (err) {
-      toast.error("Khôi phục thất bại!");
-    }
-  };
-
-  // Cập nhật handleForceDelete
-  // const handleForceDelete = async (id: number | string) => {
-  //   if (!window.confirm("Xóa vĩnh viễn sản phẩm này?")) return;
-  //   try {
-  //     await apiClientBase.delete(`/product/${id}/force-delete`);
-  //     toast.success("Đã xóa vĩnh viễn sản phẩm!");
-  //     // Tải lại danh sách đã xóa
-  //     fetchTrashedProducts();
-  //   } catch (err) {
-  //     toast.error("Xóa vĩnh viễn thất bại!");
-  //   }
-  // };
-
-  // Hiển thị form sửa
-  const handleEdit = (item: IProduct) => {
-    setFormProduct(item);
-    setImagePreview(item.image || null);
-    setEditId(item.id);
-    setFormVisible(true);
-  };
-
-  // Hiển thị form thêm
-  const handleShowAdd = () => {
-    setFormProduct({
-      name: "",
-      price: undefined,
-      id_category: "",
-      is_active: true,
-      image: "",
-      quantity_sold: undefined,
-    });
-    setImagePreview(null);
-    setEditId(null);
-    setFormVisible(true);
-  };
 
   // Đóng modal form
   const handleCloseForm = () => {
@@ -357,84 +362,59 @@ export default function Menu() {
     setEditId(null);
   };
 
-  // Bộ lọc sản phẩm theo tên và trạng thái
-  const filteredProducts = products.filter(item => {
-    const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
-    const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
-    return matchName && matchStatus;
-  });
+  // Bộ lọc sản phẩm theo tên, trạng thái, loại
+  const filteredProducts = (() => {
+    // Nếu có filter theo trạng thái, sử dụng dữ liệu từ API
+    if (filterStatus !== "" && filteredByStatusProducts.length > 0) {
+      return filteredByStatusProducts.filter(item => {
+        const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
+        const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
+        return matchName && matchCategory;
+      });
+    }
+    
+    // Nếu có filter theo danh mục, sử dụng dữ liệu từ API
+    if (filterCategory !== "" && filteredByCategoryProducts.length > 0) {
+      return filteredByCategoryProducts.filter(item => {
+        const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
+        const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
+        return matchName && matchStatus;
+      });
+    }
+    
+    // Nếu không có filter theo API, sử dụng logic cũ
+    return products.filter(item => {
+      const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
+      const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
+      const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
+      return matchName && matchStatus && matchCategory;
+    });
+  })();
+
+  // Sắp xếp theo lựa chọn
+  const sortedProducts = (() => {
+    const list = [...filteredProducts];
+    switch (sortOption) {
+      case "price_asc":
+        return list.sort((a, b) => Number(a.price) - Number(b.price));
+      case "price_desc":
+        return list.sort((a, b) => Number(b.price) - Number(a.price));
+      case "name_asc":
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+      case "name_desc":
+        return list.sort((a, b) => b.name.localeCompare(a.name));
+      case "sold_desc":
+        return list.sort((a, b) => Number(b.quantity_sold || 0) - Number(a.quantity_sold || 0));
+      default:
+        return list;
+    }
+  })();
 
   // Thêm useEffect để reset về trang 1 khi thay đổi bộ lọc
   useEffect(() => {
     setCurrentPage(1);
   }, [filterName, filterStatus]);
 
-  // Cập nhật handleDeleteCategory
-  const handleDeleteCategory = async (id: number | string) => {
-    const hasProducts = products.some(p => String(p.id_category) === String(id));
-    if (hasProducts) {
-      setModalState({
-        open: true,
-        title: "Xác nhận xóa",
-        description: "Danh mục này vẫn còn món ăn. Bạn có chắc chắn muốn xóa?",
-        emoji: <span style={{ fontSize: 28 }}>⚠️</span>,
-        acceptText: "Tiếp tục",
-        rejectText: "Hủy",
-        onAccept: () => {
-          setModalState({
-            open: true,
-            title: "Cảnh báo",
-            description: "Xóa danh mục này sẽ ảnh hưởng tới các món ăn liên quan. Bạn vẫn muốn tiếp tục?",
-            emoji: <span style={{ fontSize: 28 }}>⚠️</span>,
-            acceptText: "Xóa",
-            rejectText: "Hủy",
-            onAccept: async () => {
-              try {
-                await apiClientBase.delete(`/category/${id}`);
-                toast.success("Đã xóa danh mục thành công!");
-                // Tải lại cả danh mục và sản phẩm
-                fetchProducts();
-                // fetchCategories(catCurrentPage);
-              } catch (err) {
-                toast.error("Xóa danh mục thất bại!");
-              }
-              setModalState(prev => ({ ...prev, open: false }));
-            },
-            onReject: () => setModalState(prev => ({ ...prev, open: false }))
-          });
-        },
-        onReject: () => setModalState(prev => ({ ...prev, open: false }))
-      });
-    } else {
-      setModalState({
-        open: true,
-        title: "Xác nhận xóa",
-        description: "Bạn có chắc chắn muốn xóa danh mục này?",
-        emoji: <span style={{ fontSize: 28 }}>⚠️</span>,
-        acceptText: "Xóa",
-        rejectText: "Hủy",
-        onAccept: async () => {
-          try {
-            await apiClientBase.delete(`/category/${id}`);
-            toast.success("Đã xóa danh mục thành công!");
-            // Tải lại cả danh mục và sản phẩm
-            fetchProducts();
-            // fetchCategories(catCurrentPage);
-          } catch (err) {
-            toast.error("Xóa danh mục thất bại!");
-          }
-          setModalState(prev => ({ ...prev, open: false }));
-        },
-        onReject: () => setModalState(prev => ({ ...prev, open: false }))
-      });
-    }
-  };
-
-  // Thêm hàm xử lý xem chi tiết
-  const handleViewDetail = (product: IProduct) => {
-    setSelectedProduct(product);
-    setDetailModalVisible(true);
-  };
 
   // Handle open menu
   const handleOpenMenu = (id: number | string, event: React.MouseEvent) => {
@@ -486,8 +466,30 @@ export default function Menu() {
         </div>
         
       </div>
-      {/* Bộ lọc */}
-      <div className="flex items-center gap-2 mb-4">
+      {/* Mobile header + filter icon */}
+      <div className="flex items-center justify-between mb-2 md:hidden">
+        <h2 className="text-xl font-bold">Quản lý Menu Món Ăn</h2>
+        <button
+          className="p-2 rounded-md border bg-white text-sm"
+          onClick={() => setMobileFilterOpen(true)}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 5h18M6 12h12M10 19h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </div>
+      {/* Mobile search outside modal */}
+      <div className="md:hidden mb-4">
+        <input
+          type="text"
+          placeholder="Tìm theo tên món..."
+          className="w-full border border-gray-300 px-3 py-2 rounded-md text-sm focus:outline-none"
+          value={filterName}
+          onChange={e => setFilterName(e.target.value)}
+        />
+      </div>
+      {/* Bộ lọc desktop */}
+      <div className="hidden md:flex items-center gap-2 mb-4">
         <input
           type="text"
           placeholder="Tìm theo tên món..."
@@ -495,6 +497,16 @@ export default function Menu() {
           value={filterName}
           onChange={e => setFilterName(e.target.value)}
         />
+        <select
+          className="border border-gray-300 px-2 h-8 rounded-md text-sm bg-white min-w-[160px]"
+          value={String(filterCategory)}
+          onChange={e => setFilterCategory(e.target.value)}
+        >
+          <option value="">Tất cả loại</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
         <div ref={statusDropdownRef} className="relative">
           <button
             type="button"
@@ -527,7 +539,90 @@ export default function Menu() {
             </ul>
           )}
         </div>
+        <select
+          className="border border-gray-300 px-2 h-8 rounded-md text-sm bg-white min-w-[170px]"
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value as typeof sortOption)}
+          title="Sắp xếp"
+        >
+          <option value="default">Mặc định</option>
+          <option value="price_asc">Giá tăng dần</option>
+          <option value="price_desc">Giá giảm dần</option>
+          <option value="name_asc">Tên A-Z</option>
+          <option value="name_desc">Tên Z-A</option>
+          <option value="sold_desc">Bán chạy</option>
+        </select>
       </div>
+      {/* Mobile Filter Modal */}
+      <Modal isOpen={mobileFilterOpen} onClose={() => setMobileFilterOpen(false)} className="max-w-md">
+        <div className="bg-white rounded-xl shadow p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Bộ lọc & Sắp xếp</h3>
+            <button className="text-gray-500" onClick={() => setMobileFilterOpen(false)}>✕</button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Loại</label>
+              <select
+                className="border px-3 py-2 rounded w-full"
+                value={String(filterCategory)}
+                onChange={e => setFilterCategory(e.target.value)}
+              >
+                <option value="">Tất cả loại</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Trạng thái</label>
+              <select
+                className="border px-3 py-2 rounded w-full"
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="1">Đang bán</option>
+                <option value="0">Ngừng bán</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Sắp xếp</label>
+              <select
+                className="border px-3 py-2 rounded w-full"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as typeof sortOption)}
+              >
+                <option value="default">Mặc định</option>
+                <option value="price_asc">Giá tăng dần</option>
+                <option value="price_desc">Giá giảm dần</option>
+                <option value="name_asc">Tên A-Z</option>
+                <option value="name_desc">Tên Z-A</option>
+                <option value="sold_desc">Bán chạy</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 mt-4">
+            <button
+              className="px-3 py-2 text-sm rounded-md border"
+              onClick={() => {
+                setFilterName("");
+                setFilterCategory("");
+                setFilterStatus("");
+                setSortOption("default");
+              }}
+            >
+              Đặt lại
+            </button>
+            <button
+              className="px-4 py-2 text-sm rounded-md bg-[#3E2723] text-[#FAF3E0] hover:bg-[#D4AF37]"
+              onClick={() => setMobileFilterOpen(false)}
+            >
+              Áp dụng
+            </button>
+          </div>
+        </div>
+      </Modal>
       {/* Form thêm/sửa dùng modal */}
         {formVisible && (
           <Modal isOpen={formVisible} onClose={handleCloseForm} className="max-w-3xl top-0 left-0 right-0 mx-auto mt-4">
@@ -685,7 +780,7 @@ export default function Menu() {
               <div className="col-span-2">
                 <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100">
                   {selectedProduct.image ? (
-                    <img
+                    <Image
                       width={400}
                       height={300}
                       src={
@@ -767,7 +862,7 @@ export default function Menu() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05] ">
-                  {loading ? (
+                  {loading || loadingStatusFilter || loadingCategoryFilter ? (
                     <TableRow className="text-center">
                       <TableCell className="text-center py-6">
                         Đang tải dữ liệu...
@@ -780,13 +875,15 @@ export default function Menu() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    // Sắp xếp: món mới thêm (id lớn nhất) lên đầu
-                    [...filteredProducts].sort((a, b) => Number(b.id) - Number(a.id)).map((item) => (
+                    (sortOption === "default"
+                      ? [...sortedProducts].sort((a, b) => Number(b.id) - Number(a.id))
+                      : sortedProducts
+                    ).map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="px-4 py-3">
                           <div className="w-14 h-14 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
                             {item.image ? (
-                              <img
+                              <Image
                                 width={56}
                                 height={56}
                                 src={
@@ -848,78 +945,6 @@ export default function Menu() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-          <div className="max-w-full overflow-x-auto">
-            <div className="min-w-[900px]">
-              <Table>
-                <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
-                  <TableRow>
-                    <TableCell isHeader className="px-4 py-3 font-medium text-gray-500 text-start">Hình</TableCell>
-                    <TableCell isHeader className="px-4 py-3 font-medium text-gray-500 text-start">Tên món</TableCell>
-                    <TableCell isHeader className="px-4 py-3 font-medium text-gray-500 text-start">Giá</TableCell>
-                    <TableCell isHeader className="px-4 py-3 font-medium text-gray-500 text-start">Loại</TableCell>
-                    <TableCell isHeader className="px-4 py-3 font-medium text-gray-500 text-center">Actions</TableCell>
-                  </TableRow>
-                </TableHeader>
-                <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05] ">
-                  {loadingTrashed ? (
-                    <TableRow>
-                      <TableCell className="text-center py-6">
-                        Đang tải dữ liệu...
-                      </TableCell>
-                    </TableRow>
-                  ) : trashedProducts.length === 0 ? (
-                    <TableRow>
-                      <TableCell className="text-center py-6">
-                        Không có sản phẩm đã xóa.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    trashedProducts.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="px-4 py-3">
-                          <div className="w-14 h-14 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
-                            {item.image ? (
-                              <img
-                                width={56}
-                                height={56}
-                                src={
-                                  item.image.startsWith("http") || item.image.startsWith("/")
-                                    ? item.image
-                                    : `/images/products/${item.image}`
-                                }
-                                alt={item.name}
-                              />
-                            ) : (
-                              <span className="text-xs text-gray-400">No Image</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">{item.name}</TableCell>
-                        <TableCell className="px-4 py-3">{item.price?.toLocaleString()} đ</TableCell>
-                        <TableCell className="px-4 py-3">
-                          {categories.find(c => String(c.id) === String(item.id_category))?.name || item.id_category}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-center">
-                          <button
-                            className="px-3 py-1 bg-green-500 text-white rounded mr-2"
-                            onClick={() => handleRestore(item.id)}
-                          >
-                            Khôi phục
-                          </button>
-                          {/* <button
-                            className="px-3 py-1 bg-red-500 text-white rounded"
-                            onClick={() => handleForceDelete(item.id)}
-                          >
-                            Xóa vĩnh viễn
-                          </button> */}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
         </div>
       )}
       {/* Phân trang */}

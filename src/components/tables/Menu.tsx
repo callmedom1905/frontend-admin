@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
+
 import { IProduct } from "../../model/type";
 import { Modal } from "../ui/modal";
 import apiClientBase from "@/lib/apiClient";
@@ -45,20 +46,38 @@ export default function Menu() {
   // State cho bộ lọc
   const [filterName, setFilterName] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string | number | "">("");
+  const [sortOption, setSortOption] = useState<
+    "default" | "price_asc" | "price_desc" | "name_asc" | "name_desc" | "sold_desc"
+  >("default");
 
   // State cho phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const perPage = 10;
 
   // State cho hiển thị sản phẩm đã xóa
   const [showTrashed, setShowTrashed] = useState(false);
   const [trashedProducts, setTrashedProducts] = useState<IProduct[]>([]);
   const [loadingTrashed, setLoadingTrashed] = useState(false);
 
-  // State cho danh mục đã xóa mềm
-  const [trashedCategories, setTrashedCategories] = useState<{ id: string | number; name: string }[]>([]);
-  const [loadingTrashedCategories, setLoadingTrashedCategories] = useState(false);
+  // State cho dữ liệu từ API lọc theo trạng thái
+  const [filteredByStatusProducts, setFilteredByStatusProducts] = useState<IProduct[]>([]);
+  const [loadingStatusFilter, setLoadingStatusFilter] = useState(false);
+
+  // State cho dữ liệu từ API lọc theo danh mục
+  const [filteredByCategoryProducts, setFilteredByCategoryProducts] = useState<IProduct[]>([]);
+  const [loadingCategoryFilter, setLoadingCategoryFilter] = useState(false);
+
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+  // State cho thanh chức năng menu
+  const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  // State cho image preview
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   // State cho modal thông báo khi submit form
   const [modalState, setModalState] = useState<{
@@ -79,18 +98,6 @@ export default function Menu() {
     rejectText: "Đóng",
   });
 
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const statusDropdownRef = useRef<HTMLDivElement>(null);
-
-  // State for portal action menu
-  const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-
-  // State cho image preview
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-  // Thêm state lưu vị trí nút 3 chấm
-  const [actionButtonRect, setActionButtonRect] = useState<DOMRect | null>(null);
 
   // Hàm xử lý chọn ảnh từ ImageSelector
   const handleImageSelect = (url: string) => {
@@ -108,10 +115,9 @@ export default function Menu() {
     try {
       const res = await apiClientBase.get(`/category`);
       if (res.data && res.data) {
-        setCategories(res.data.map((cat: any) => ({
-          id: cat.id,
-          name: cat.name,
-        })));
+        type CategoryOption = { id: string | number; name: string };
+        const cats = res.data as CategoryOption[];
+        setCategories(cats.map((cat) => ({ id: cat.id, name: cat.name })));
       }
     } catch (err) {
       toast.error("Không thể tải danh mục!");
@@ -120,6 +126,81 @@ export default function Menu() {
 
   useEffect(() => {
     fetchCategories();
+  }, []);
+
+  // Hàm gọi API lọc theo trạng thái
+  const fetchProductsByStatus = useCallback(async (status: string) => {
+    if (status === "") {
+      setFilteredByStatusProducts([]);
+      return;
+    }
+    
+    setLoadingStatusFilter(true);
+    try {
+      const url = status === "1" ? "/products/filter/active" : "/products/filter/inactive";
+      const res = await apiClientBase.get(url);
+      const list = Array.isArray(res.data?.data) 
+        ? (res.data.data as Array<IProduct & { status: boolean | number }>)
+        : [];
+      
+      const processedList = list.map((item) => {
+        let is_active = false;
+        if (typeof item.status === "boolean") {
+          is_active = item.status === true;
+        } else if (typeof item.status === "number") {
+          is_active = item.status === 1;
+        }
+        return {
+          ...item,
+          id_category: item.id_category ?? item.id_category,
+          is_active,
+        } as IProduct & { is_active: boolean };
+      });
+      
+      setFilteredByStatusProducts(processedList);
+    } catch (error) {
+      toast.error("Không thể tải dữ liệu lọc theo trạng thái!");
+      setFilteredByStatusProducts([]);
+    } finally {
+      setLoadingStatusFilter(false);
+    }
+  }, []);
+
+  // Hàm gọi API lọc theo danh mục
+  const fetchProductsByCategory = useCallback(async (categoryId: string | number) => {
+    if (categoryId === "") {
+      setFilteredByCategoryProducts([]);
+      return;
+    }
+    
+    setLoadingCategoryFilter(true);
+    try {
+      const res = await apiClientBase.get(`/products/category/${categoryId}`);
+      const list = Array.isArray(res.data) 
+        ? (res.data as Array<IProduct & { status: boolean | number }>)
+        : [];
+      
+      const processedList = list.map((item) => {
+        let is_active = false;
+        if (typeof item.status === "boolean") {
+          is_active = item.status === true;
+        } else if (typeof item.status === "number") {
+          is_active = item.status === 1;
+        }
+        return {
+          ...item,
+          id_category: item.id_category ?? item.id_category,
+          is_active,
+        } as IProduct & { is_active: boolean };
+      });
+      
+      setFilteredByCategoryProducts(processedList);
+    } catch (error) {
+      toast.error("Không thể tải dữ liệu lọc theo danh mục!");
+      setFilteredByCategoryProducts([]);
+    } finally {
+      setLoadingCategoryFilter(false);
+    }
   }, []);
 
 
@@ -140,38 +221,50 @@ export default function Menu() {
   }, [statusDropdownOpen]);
 
   // Thêm hàm fetchProducts để tái sử dụng
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiClientBase.get(`/pagination/products?page=${currentPage}`);
-      console.log('API Response:', res.data);
-      const products = Array.isArray(res.data?.data) ? res.data.data : [];
-      console.log('Processed Products:', products);
-      setProducts(products.map((item: any) => {
-        let is_active = false;
-        if (typeof item.status === "boolean") {
-          is_active = item.status === true;
-        } else if (typeof item.status === "number") {
-          is_active = item.status === 1;
-        }
-        return {
-          ...item,
-          id_category: item.id_category ?? item.id_category,
-          is_active,
-        };
-      }));
+      const list = Array.isArray(res.data?.data)
+        ? (res.data.data as Array<IProduct & { status: boolean | number }>)
+        : [];
+      setProducts(
+        list.map((item) => {
+          let is_active = false;
+          if (typeof item.status === "boolean") {
+            is_active = item.status === true;
+          } else if (typeof item.status === "number") {
+            is_active = item.status === 1;
+          }
+          return {
+            ...item,
+            id_category: item.id_category ?? item.id_category,
+            is_active,
+          } as IProduct & { is_active: boolean };
+        })
+      );
       setTotalPages(res.data?.last_page || 1);
     } catch (error) {
       toast.error("Không thể tải danh sách sản phẩm!");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
 
   // Cập nhật useEffect để sử dụng fetchProducts
   useEffect(() => {
     fetchProducts();
-  }, [currentPage]);
+  }, [fetchProducts]);
+
+  // Gọi API lọc theo trạng thái khi filterStatus thay đổi
+  useEffect(() => {
+    fetchProductsByStatus(filterStatus);
+  }, [filterStatus, fetchProductsByStatus]);
+
+  // Gọi API lọc theo danh mục khi filterCategory thay đổi
+  useEffect(() => {
+    fetchProductsByCategory(filterCategory);
+  }, [filterCategory, fetchProductsByCategory]);
 
   // Lấy danh sách sản phẩm đã xóa mềm
   const fetchTrashedProducts = async () => {
@@ -186,18 +279,6 @@ export default function Menu() {
     setLoadingTrashed(false);
   };
 
-  // Lấy danh mục đã xóa mềm
-  const fetchTrashedCategories = async () => {
-    setLoadingTrashedCategories(true);
-    try {
-      const res = await apiClientBase.get("/categories/trashed");
-      const data = Array.isArray(res.data) ? res.data : [];
-      setTrashedCategories(data);
-    } catch (err) {
-      alert("Không thể tải danh mục đã xóa!");
-    }
-    setLoadingTrashedCategories(false);
-  };
 
   // Cập nhật handleSubmit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -265,11 +346,11 @@ export default function Menu() {
       setImagePreview(null);
       setEditId(null);
       fetchProducts();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setModalState({
         open: true,
         title: "Lưu thất bại!",
-        description: err.response?.data?.message || "Có lỗi xảy ra khi lưu sản phẩm.",
+        description: (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Có lỗi xảy ra khi lưu sản phẩm.",
         emoji: <span style={{ fontSize: 28 }}>❌</span>,
         acceptText: "OK",
         onAccept: () => setModalState((prev) => ({ ...prev, open: false })),
@@ -347,18 +428,57 @@ export default function Menu() {
   };
 
   // Bộ lọc sản phẩm theo tên và trạng thái
-  const filteredProducts = products.filter(item => {
-    const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
-    const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
-    return matchName && matchStatus;
-  });
+  const filteredProducts = (() => {
+    // Nếu có filter theo trạng thái, sử dụng dữ liệu từ API
+    if (filterStatus !== "" && filteredByStatusProducts.length > 0) {
+      return filteredByStatusProducts.filter(item => {
+        const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
+        const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
+        return matchName && matchCategory;
+      });
+    }
+    
+    // Nếu có filter theo danh mục, sử dụng dữ liệu từ API
+    if (filterCategory !== "" && filteredByCategoryProducts.length > 0) {
+      return filteredByCategoryProducts.filter(item => {
+        const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
+        const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
+        return matchName && matchStatus;
+      });
+    }
+    
+    // Nếu không có filter theo API, sử dụng logic cũ
+    return products.filter(item => {
+      const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
+      const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
+      const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
+      return matchName && matchStatus && matchCategory;
+    });
+  })();
+
+  const sortedProducts = (() => {
+    const list = [...filteredProducts];
+    switch (sortOption) {
+      case "price_asc":
+        return list.sort((a, b) => Number(a.price) - Number(b.price));
+      case "price_desc":
+        return list.sort((a, b) => Number(b.price) - Number(a.price));
+      case "name_asc":
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+      case "name_desc":
+        return list.sort((a, b) => b.name.localeCompare(a.name));
+      case "sold_desc":
+        return list.sort((a, b) => Number(b.quantity_sold || 0) - Number(a.quantity_sold || 0));
+      default:
+        return list;
+    }
+  })();
 
   // Thêm useEffect để reset về trang 1 khi thay đổi bộ lọc
   useEffect(() => {
     setCurrentPage(1);
   }, [filterName, filterStatus]);
 
-  // Cập nhật handleDeleteCategory
 
   // Thêm hàm xử lý xem chi tiết
   const handleViewDetail = (product: IProduct) => {
@@ -366,14 +486,13 @@ export default function Menu() {
     setDetailModalVisible(true);
   };
 
-  // Handle open menu
+  // Xử lý mở menu
   const handleOpenMenu = (id: number | string, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     if (openMenuId === id) {
       setOpenMenuId(null);
       setMenuPosition(null);
-      setActionButtonRect(null);
       return;
     }
     const buttonRect = (event.target as HTMLElement).closest("button")?.getBoundingClientRect();
@@ -381,19 +500,17 @@ export default function Menu() {
       setMenuPosition({
         top: buttonRect.bottom + 8, // 8px cách nút, bỏ window.scrollY
         left: buttonRect.left + buttonRect.width / 2 - 120, // bỏ window.scrollX
-      });
-      setActionButtonRect(buttonRect);
+      }); 
     } else {
       setMenuPosition({
         top: event.clientY,
         left: event.clientX,
       });
-      setActionButtonRect(null);
     }
     setOpenMenuId(id);
   };
 
-  // Close menu on outside click
+  // Đóng menu khi click ngoài
   useEffect(() => {
     if (openMenuId === null) return;
     const handleClick = (e: MouseEvent) => {
@@ -423,7 +540,30 @@ export default function Menu() {
         
       </div>
       {/* Bộ lọc */}
-      <div className="flex items-center gap-2 mb-4">
+      {/* Bộ lọc mobile */}
+      <div className="flex items-center justify-between mb-2 md:hidden">
+        <h2 className="text-xl font-bold">Quản lý Menu Món Ăn</h2>
+        <button
+          className="p-2 rounded-md border bg-white text-sm"
+          onClick={() => setMobileFilterOpen(true)}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 5h18M6 12h12M10 19h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
+      </div>
+      {/* Mobile search (outside modal) */}
+      <div className="md:hidden mb-4">
+        <input
+          type="text"
+          placeholder="Tìm theo tên món..."
+          className="w-full border border-gray-300 px-3 py-2 rounded-md text-sm focus:outline-none"
+          value={filterName}
+          onChange={e => setFilterName(e.target.value)}
+        />
+      </div>
+      {/* Bộ lọc desktop   */}
+      <div className="hidden md:flex items-center gap-2 mb-4">
         <input
           type="text"
           placeholder="Tìm theo tên món..."
@@ -431,6 +571,16 @@ export default function Menu() {
           value={filterName}
           onChange={e => setFilterName(e.target.value)}
         />
+        <select
+          className="border border-gray-300 px-2 h-8 rounded-md text-sm bg-white min-w-[160px]"
+          value={String(filterCategory)}
+          onChange={e => setFilterCategory(e.target.value)}
+        >
+          <option value="">Tất cả loại</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
         <div ref={statusDropdownRef} className="relative">
           <button
             type="button"
@@ -463,6 +613,19 @@ export default function Menu() {
             </ul>
           )}
         </div>
+        <select
+          className="border border-gray-300 px-2 h-8 rounded-md text-sm bg-white min-w-[170px]"
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value as typeof sortOption)}
+          title="Sắp xếp"
+        >
+          <option value="default">Mặc định</option>
+          <option value="price_asc">Giá tăng dần</option>
+          <option value="price_desc">Giá giảm dần</option>
+          <option value="name_asc">Tên A-Z</option>
+          <option value="name_desc">Tên Z-A</option>
+          <option value="sold_desc">Bán chạy</option>
+        </select>
         <button
           className={`border border-gray-300 px-2 h-8 rounded-md text-sm font-normal bg-white ${!showTrashed ? 'bg-amber-100 border-amber-400' : ''}`}
           onClick={() => setShowTrashed(false)}
@@ -481,6 +644,78 @@ export default function Menu() {
           Đã xóa
         </button>
       </div>
+      {/* Modal bộ lọc mobile */}
+      <Modal isOpen={mobileFilterOpen} onClose={() => setMobileFilterOpen(false)} className="max-w-md">
+        <div className="bg-white rounded-xl shadow p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Bộ lọc & Sắp xếp</h3>
+            <button className="text-gray-500" onClick={() => setMobileFilterOpen(false)}>
+              ✕
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Loại</label>
+              <select
+                className="border px-3 py-2 rounded w-full"
+                value={String(filterCategory)}
+                onChange={e => setFilterCategory(e.target.value)}
+              >
+                <option value="">Tất cả loại</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Trạng thái</label>
+              <select
+                className="border px-3 py-2 rounded w-full"
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="1">Đang bán</option>
+                <option value="0">Ngừng bán</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Sắp xếp</label>
+              <select
+                className="border px-3 py-2 rounded w-full"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as typeof sortOption)}
+              >
+                <option value="default">Mặc định</option>
+                <option value="price_asc">Giá tăng dần</option>
+                <option value="price_desc">Giá giảm dần</option>
+                <option value="name_asc">Tên A-Z</option>
+                <option value="name_desc">Tên Z-A</option>
+                <option value="sold_desc">Bán chạy</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 mt-4">
+            <button
+              className="px-3 py-2 text-sm rounded-md border"
+              onClick={() => {
+                setFilterName("");
+                setFilterCategory("");
+                setFilterStatus("");
+                setSortOption("default");
+              }}
+            >
+              Đặt lại
+            </button>
+            <button
+              className="px-4 py-2 text-sm rounded-md bg-[#3E2723] text-[#FAF3E0] hover:bg-[#D4AF37]"
+              onClick={() => setMobileFilterOpen(false)}
+            >
+              Áp dụng
+            </button>
+          </div>
+        </div>
+      </Modal>
       {/* Form thêm/sửa dùng modal */}
         {formVisible && (
           <Modal isOpen={formVisible} onClose={handleCloseForm} className="max-w-3xl top-0 left-0 right-0 mx-auto mt-4">
@@ -641,11 +876,7 @@ export default function Menu() {
                     <img
                       width={400}
                       height={300}
-                      src={
-                        selectedProduct.image.startsWith("http") || selectedProduct.image.startsWith("/")
-                          ? selectedProduct.image
-                          : `/images/products/${selectedProduct.image}`
-                      }
+                      src={selectedProduct.image}
                       alt={selectedProduct.name}
                       className="w-full h-full object-cover"
                     />
@@ -720,7 +951,7 @@ export default function Menu() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05] ">
-                  {loading ? (
+                  {loading || loadingStatusFilter || loadingCategoryFilter ? (
                     <TableRow className="text-center">
                       <TableCell className="text-center py-6">
                         Đang tải dữ liệu...
@@ -733,8 +964,11 @@ export default function Menu() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    // Sắp xếp: món mới thêm (id lớn nhất) lên đầu
-                    [...filteredProducts].sort((a, b) => Number(b.id) - Number(a.id)).map((item) => (
+                    // Áp dụng sắp xếp đã chọn; nếu mặc định, giữ món mới nhất lên đầu
+                    (sortOption === "default"
+                      ? [...sortedProducts].sort((a, b) => Number(b.id) - Number(a.id))
+                      : sortedProducts
+                    ).map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="px-4 py-3">
                           <div className="w-14 h-14 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
@@ -742,12 +976,9 @@ export default function Menu() {
                               <img
                                 width={56}
                                 height={56}
-                                src={
-                                  item.image.startsWith("http") || item.image.startsWith("/")
-                                    ? item.image
-                                    : `/images/products/${item.image}`
-                                }
+                                src={item.image}
                                 alt={item.name}
+                                className="w-full h-full object-cover"
                               />
                             ) : (
                               <span className="text-xs text-gray-400">No Image</span>
@@ -835,11 +1066,7 @@ export default function Menu() {
                               <img
                                 width={56}
                                 height={56}
-                                src={
-                                  item.image.startsWith("http") || item.image.startsWith("/")
-                                    ? item.image
-                                    : `/images/products/${item.image}`
-                                }
+                                src={item.image}
                                 alt={item.name}
                               />
                             ) : (
@@ -869,6 +1096,7 @@ export default function Menu() {
           </div>
         </div>
       )}
+      {/* Phân trang */}
       <div className="flex justify-center items-center gap-2 mt-4 select-none">
         <button
           className="px-3 py-1 rounded border bg-gray-100 text-gray-400 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
@@ -935,7 +1163,7 @@ export default function Menu() {
           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           disabled={currentPage === totalPages}
         >
-          Tiếp Theo
+          Tiếp
         </button>
       </div>
       {/* NotificationModal cho submit form */}
