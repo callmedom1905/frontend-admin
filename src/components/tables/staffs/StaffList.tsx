@@ -11,7 +11,6 @@ import {
 import apiClient from "@/lib/apiClient";
 import NotificationModal from "@/components/tables/NotificationModal";
 import ToastMessage from "@/components/common/ToastMessage";
-import { toast } from "react-toastify";
 import { FiMoreVertical } from "react-icons/fi";
 import ReactDOM from "react-dom";
 
@@ -22,7 +21,7 @@ interface Staff {
   profile_image?: string;
   email?: string;
   phone: string;
-  status: number; // 0: ngừng hoạt động (Đã nghỉ), 1: đang hoạt động (Đang làm)
+  status: number | string; // 0: ngừng hoạt động (Đã nghỉ), 1: đang hoạt động (Đang làm)
   created_at: string;
   updated_at?: string;
   [key: string]: any;
@@ -432,10 +431,10 @@ const StaffList: React.FC<StaffListProps> = ({ onEditStaff, onViewStaff, onDelet
                         >
                           <span
                             className={`w-2 h-2 rounded-full ${
-                              staff.status === 1 ? "bg-green-500" : "bg-red-500"
+                              staff.status === "1" ? "bg-green-500" : "bg-red-500"
                             }`}
                           ></span>
-                          {staff.status === 1 ? "Đang làm" : "Đã nghỉ"}
+                          {staff.status === "1" ? "Đang làm" : "Đã nghỉ"}
                         </span>
                       </TableCell>
                       <TableCell className="px-5 py-3 text-gray-700 bg-white group-hover:bg-gray-50">
