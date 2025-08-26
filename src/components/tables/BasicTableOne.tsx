@@ -31,7 +31,7 @@ interface IUser {
     name: string;
     guard_name: string;
   };
-  status: number;
+  status: number | string;
 }
 
 interface BasicTableOneProps {
@@ -342,9 +342,9 @@ function UserDetailModal({ isOpen, onClose, user }: {
                 </div>
                 <div className="mt-2">
                   <Badge
-                    color={user.status === 1 ? "success" : "error"}
+                    color={user.status === "1" ? "success" : "error"}
                   >
-                    {user.status === 1 ? "Đang hoạt động" : "Ngừng hoạt động"}
+                    {user.status === "1" ? "Đang hoạt động" : "Ngừng hoạt động"}
                   </Badge>
                 </div>
               </div>
@@ -583,7 +583,7 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
 
   const handleToggleStatus = async (user: IUser) => {
     try {
-      const newStatus = user.status === 1 ? 1 : 0;
+      const newStatus = user.status === 1 ? 0 : 1;
       await apiClientBase.patch(`/users/${user.id}`, { status: newStatus });
       // toast.success("Đã đổi trạng thái thành công");
       setModalState({
