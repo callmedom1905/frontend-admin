@@ -584,7 +584,7 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
   const handleToggleStatus = async (user: IUser) => {
     try {
       const newStatus = user.status === 1 ? 0 : 1;
-      await apiClientBase.patch(`/users/${user.id}`, { status: newStatus });
+      await apiClientBase.put(`/users/${user.id}`, { status: newStatus });
       // toast.success("Đã đổi trạng thái thành công");
       setModalState({
         open: true,
