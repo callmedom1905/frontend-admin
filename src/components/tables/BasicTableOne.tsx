@@ -675,11 +675,7 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
                           {user.name}
                         </span>
                         <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                          {user.id_role === 1
-                            ? "Admin"
-                            : user.id_role === 3
-                              ? "User"
-                              : "Staff"}
+                          User
                         </span>
                       </button>
                     </TableCell>
