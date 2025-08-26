@@ -8,7 +8,7 @@ interface UserFilterProps {
 }
 
 const UserFilter: React.FC<UserFilterProps> = ({ onFilterChange }) => {
-  const [dropdown, setDropdown] = useState<{ type: null | "status"; open: boolean; anchor: any }>({
+  const [dropdown, setDropdown] = useState<{ type: null | "status"; open: boolean; anchor: HTMLElement | null }>({
     type: null,
     open: false,
     anchor: null,

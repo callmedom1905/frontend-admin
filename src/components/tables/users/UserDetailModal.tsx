@@ -1,5 +1,6 @@
 import React from "react";
 import { Modal } from "../../ui/modal";
+import Image from "next/image";
 import { FiUser, FiMail, FiPhone, FiCalendar, FiShield } from "react-icons/fi";
 import Badge from "../../ui/badge/Badge";
 
@@ -9,7 +10,7 @@ interface User {
   email?: string;
   phone: string;
   status: number;
-  id_role: number;
+  id_role: number | string;
   profile_image?: string;
   created_at?: string;
   updated_at?: string;
@@ -57,7 +58,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, user
             <div className="flex items-start gap-6">
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
                 {user.profile_image ? (
-                  <img
+                  <Image
                     width={96}
                     height={96}
                     src={
@@ -77,7 +78,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, user
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <FiShield className="w-4 h-4" />
                   <span>
-                    {user.id_role === 1 ? "Admin" : user.id_role === 2 ? "Staff" : "User"}
+                    User
                   </span>
                 </div>
                 <div className="mt-2">

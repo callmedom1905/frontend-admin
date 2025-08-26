@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useForm, RegisterOptions } from "react-hook-form";
-import apiClient from "@/lib/apiClient";
 
 interface User {
   id: number;
@@ -35,7 +34,6 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, editUser }) => {
     formState: { errors },
     reset,
     setError,
-    clearErrors,
     setValue,
     watch,
   } = useForm<UserFormData>();
@@ -64,8 +62,6 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, editUser }) => {
     try {
       if (onSubmit) onSubmit(data);
     } catch (err: any) {
-      console.log("Full error object:", err);
-      console.log("Error response:", err.response?.data);
       
       // Xử lý lỗi từ backend với format {status: false, message: "..."}
       if (err.response?.data?.message) {
