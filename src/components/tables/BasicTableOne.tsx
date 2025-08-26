@@ -592,13 +592,17 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
         description: `Trạng thái người dùng đã được đổi thành ${newStatus === 1 ? "Đang hoạt động" : "Ngừng hoạt động"}.`,
         emoji: <span style={{ fontSize: 28 }}>✅</span>,
         acceptText: "OK",
-        onAccept: () => setModalState(prev => ({ ...prev, open: false })),
+        onAccept: () => {
+          setModalState(prev => ({ ...prev, open: false }));
+          window.location.reload();
+
+        },
+
       });
       setUsers(users =>
         users.map(u => u.id === user.id ? { ...u, status: newStatus } : u)
       );
       //tải lại trang
-      window.location.reload();
     } catch (error) {
       // toast.error("Đổi trạng thái thất bại");
       setModalState({
@@ -609,6 +613,8 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
         acceptText: "OK",
         onAccept: () => setModalState(prev => ({ ...prev, open: false })),
       });
+      window.location.reload();
+
     }
   };
 
