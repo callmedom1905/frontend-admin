@@ -1,9 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { DashboardService, MonthlyRevenue } from "@/services/dashboard";
+import { DashboardService } from "@/services/dashboard";
 
 export default function MonthlySalesBarChart() {
-  const [salesData, setSalesData] = useState<{labels: string[], values: number[]}>({
+  const [salesData, setSalesData] = useState<{ labels: string[], values: number[] }>({
     labels: [],
     values: []
   });
@@ -15,7 +15,7 @@ export default function MonthlySalesBarChart() {
         setLoading(true);
         const data = await DashboardService.getRevenue12Months();
         console.log('Revenue data received:', data);
-        
+
         // Sắp xếp dữ liệu theo thời gian và đảo ngược để có thứ tự từ cũ đến mới
         const sortedData = data.sort((a, b) => {
           const dateA = new Date(parseInt(a.year), parseInt(a.month) - 1);
@@ -56,18 +56,29 @@ export default function MonthlySalesBarChart() {
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm">
       <h3 className="font-semibold mb-4 text-gray-800">Doanh thu theo tháng (12 tháng gần nhất)</h3>
-      <div className="w-full overflow-x-auto custom-scrollbar">
-        <div className="h-56 flex items-end gap-2 min-w-[520px] sm:min-w-0">
-          {salesData.values.map((v, i) => (
-            <div key={i} className="flex flex-col items-center flex-1 min-w-[32px]">
-              <div
-                className="bg-blue-500 rounded-t w-6 min-h-[4px]"
-                style={{ height: `${(v / maxValue) * 200}px` }}
-                title={`${v} nghìn VND`}
-              ></div>
-              <span className="text-xs text-gray-400 mt-1">{salesData.labels[i]}</span>
-            </div>
-          ))}
+      <div className="w-full overflow-x-auto overflow-visible custom-scrollbar">
+        <div className="h-80 flex items-end gap-10 md:gap-16 min-w-[520px] sm:min-w-0">
+          {salesData.values.map((v, i) => {
+            const barHeight = (v / maxValue) * 200;
+            return (
+              <div key={i} className="flex flex-col items-center flex-1 min-w-[56px] min-h-[220px] justify-end">
+                {/* Hiển thị số tiền phía trên bar, luôn nằm trên đầu cột */}
+                {v > 0 ? (
+                  <span className="text-xs text-gray-700 font-semibold bg-white bg-opacity-80 px-1 rounded z-10 mb-1" style={{ minWidth: '40px', whiteSpace: 'nowrap' }}>
+                    {(v * 1000).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                  </span>
+                ) : (
+                  <span className="mb-1" style={{ minHeight: '20px' }}></span>
+                )}
+                <div
+                  className="bg-blue-500 rounded-t w-6 min-h-[4px]"
+                  style={{ height: `${barHeight}px`, marginBottom: '4px' }}
+                  title={`${(v * 1000).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}`}
+                ></div>
+                <span className="text-xs text-gray-400 mt-1">{salesData.labels[i]}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className="mt-2 text-xs text-gray-500 text-center">
