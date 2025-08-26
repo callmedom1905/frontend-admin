@@ -9,7 +9,7 @@ interface User {
   name: string;
   email?: string;
   phone: string;
-  status: number;
+  status: number | string;
   id_role: number | string;
   profile_image?: string;
   created_at?: string;
@@ -83,9 +83,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, user
                 </div>
                 <div className="mt-2">
                   <Badge
-                    color={user.status === 1 ? "success" : "error"}
+                    color={user.status === "1" ? "success" : "error"}
                   >
-                    {user.status === 1 ? "Đang hoạt động" : "Ngừng hoạt động"}
+                    {user.status === "1" ? "Đang hoạt động" : "Ngừng hoạt động"}
                   </Badge>
                 </div>
               </div>

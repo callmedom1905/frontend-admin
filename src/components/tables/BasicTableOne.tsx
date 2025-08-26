@@ -684,9 +684,9 @@ export default function BasicTableOne({ onEditUser, onViewUser }: BasicTableOneP
                     <TableCell className="px-4 py-3">
                       <button
                         onClick={() => handleToggleStatus(user)}
-                        className={`px-3 py-1 rounded text-xs font-semibold transition-colors duration-150 ${user.status === 1 ? "bg-green-500 hover:bg-green-600 text-white" : "bg-gray-400 hover:bg-gray-500 text-white"}`}
+                        className={`px-3 py-1 rounded text-xs font-semibold transition-colors duration-150 ${user.status === "1" ? "bg-green-500 hover:bg-green-600 text-white" : "bg-gray-400 hover:bg-gray-500 text-white"}`}
                       >
-                        {user.status === 1 ? "Đang hoạt động" : "Ngừng hoạt động"}
+                        {user.status === "1" ? "Đang hoạt động" : "Ngừng hoạt động"}
                       </button>
                     </TableCell>
                     <TableCell className="px-4 py-3">
