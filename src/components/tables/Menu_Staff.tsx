@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -12,6 +12,7 @@ import Image from "next/image";
 import { IProduct } from "../../model/type";
 import { Modal } from "../ui/modal";
 import apiClientBase from "@/lib/apiClient";
+// import { FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
 import NotificationModal from "./NotificationModal";
 import ReactDOM from "react-dom";
@@ -20,7 +21,7 @@ import { ImageSelectorButton } from "@/components/file-manager";
 export default function Menu() {
   const [products, setProducts] = useState<IProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
+  const [selectedProduct] = useState<IProduct | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   
 
@@ -50,13 +51,17 @@ export default function Menu() {
   const [sortOption, setSortOption] = useState<
     "default" | "price_asc" | "price_desc" | "name_asc" | "name_desc" | "sold_desc"
   >("default");
+  const [apiSortedProducts, setApiSortedProducts] = useState<IProduct[]>([]);
+  const [loadingSort, setLoadingSort] = useState(false);
+  const [searchResults, setSearchResults] = useState<IProduct[]>([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
 
   // State cho phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   // State cho hiển thị sản phẩm đã xóa
-  const [showTrashed, setShowTrashed] = useState(false);
+  const [showTrashed] = useState(false);
 
   // State cho dữ liệu từ API lọc theo trạng thái
   const [filteredByStatusProducts, setFilteredByStatusProducts] = useState<IProduct[]>([]);
@@ -95,9 +100,6 @@ export default function Menu() {
   // State cho image preview
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // Thêm state lưu vị trí nút 3 chấm
-  const [actionButtonRect, setActionButtonRect] = useState<DOMRect | null>(null);
-
   // Hàm xử lý chọn ảnh từ ImageSelector
   const handleImageSelect = (url: string) => {
     setFormProduct(prev => ({ ...prev, image: url }));
@@ -114,12 +116,12 @@ export default function Menu() {
     try {
       const res = await apiClientBase.get(`/categories/all`);
       if (res.data && res.data) {
-        setCategories(res.data.map((cat: any) => ({
+        setCategories(res.data.map((cat: { id: string | number; name: string }) => ({
           id: cat.id,
           name: cat.name,
         })));
       }
-    } catch (err) {
+    } catch {
       toast.error("Không thể tải danh mục!");
     }
   };
@@ -158,7 +160,7 @@ export default function Menu() {
       });
       
       setFilteredByStatusProducts(processedList);
-    } catch (error) {
+    } catch {
       toast.error("Không thể tải dữ liệu lọc theo trạng thái!");
       setFilteredByStatusProducts([]);
     } finally {
@@ -195,7 +197,7 @@ export default function Menu() {
       });
       
       setFilteredByCategoryProducts(processedList);
-    } catch (error) {
+    } catch {
       toast.error("Không thể tải dữ liệu lọc theo danh mục!");
       setFilteredByCategoryProducts([]);
     } finally {
@@ -221,14 +223,14 @@ export default function Menu() {
   }, [statusDropdownOpen]);
 
   // Thêm hàm fetchProducts để tái sử dụng
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiClientBase.get(`/pagination/products?page=${currentPage}`);
       console.log('API Response:', res.data);
-      const products = Array.isArray(res.data?.data) ? res.data.data : [];
+      const products = Array.isArray(res.data?.data) ? (res.data.data as Array<IProduct & { status: boolean | number }>) : [];
       console.log('Processed Products:', products);
-      setProducts(products.map((item: any) => {
+      setProducts(products.map((item: IProduct & { status: boolean | number }) => {
         let is_active = false;
         if (typeof item.status === "boolean") {
           is_active = item.status === true;
@@ -242,17 +244,17 @@ export default function Menu() {
         };
       }));
       setTotalPages(res.data?.last_page || 1);
-    } catch (error) {
+    } catch {
       toast.error("Không thể tải danh sách sản phẩm!");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
 
   // Cập nhật useEffect để sử dụng fetchProducts
   useEffect(() => {
     fetchProducts();
-  }, [currentPage]);
+  }, [fetchProducts]);
 
   // Gọi API lọc theo trạng thái khi filterStatus thay đổi
   useEffect(() => {
@@ -263,6 +265,91 @@ export default function Menu() {
   useEffect(() => {
     fetchProductsByCategory(filterCategory);
   }, [filterCategory]);
+
+  // Gọi API sắp xếp theo lựa chọn (giá tăng/giảm, bán chạy)
+  useEffect(() => {
+    const fetchSorted = async () => {
+      const useApi = sortOption === "price_asc" || sortOption === "price_desc" || sortOption === "sold_desc";
+      if (!useApi) {
+        setApiSortedProducts([]);
+        return;
+      }
+
+      setLoadingSort(true);
+      try {
+        let url = "";
+        if (sortOption === "price_asc") url = "/products/sort/asc";
+        else if (sortOption === "price_desc") url = "/products/sort/desc";
+        else if (sortOption === "sold_desc") url = "/products/most-sold";
+
+        const res = await apiClientBase.get(url);
+        const list = Array.isArray(res.data)
+          ? (res.data as Array<IProduct & { status: boolean | number }>)
+          : Array.isArray(res.data?.data)
+            ? (res.data.data as Array<IProduct & { status: boolean | number }>)
+            : [];
+
+        const processed = list.map((item) => {
+          let is_active = false;
+          if (typeof item.status === "boolean") is_active = item.status === true;
+          else if (typeof item.status === "number") is_active = item.status === 1;
+          return {
+            ...item,
+            id_category: item.id_category ?? item.id_category,
+            is_active,
+          } as IProduct & { is_active: boolean };
+        });
+        setApiSortedProducts(processed);
+      } catch {
+        toast.error("Không thể sắp xếp dữ liệu!");
+        setApiSortedProducts([]);
+      } finally {
+        setLoadingSort(false);
+      }
+    };
+
+    fetchSorted();
+  }, [sortOption]);
+
+  // Tìm kiếm theo tên bằng API
+  useEffect(() => {
+    const debounced = setTimeout(async () => {
+      const name = filterName.trim();
+      if (name === "") {
+        setSearchResults([]);
+        return;
+      }
+      setLoadingSearch(true);
+      try {
+        const res = await apiClientBase.get(`/products/search?query=${encodeURIComponent(name)}&page=${currentPage}`);
+        const list = Array.isArray(res.data?.data)
+          ? (res.data.data as Array<IProduct & { status: boolean | number }>)
+          : Array.isArray(res.data?.data?.data)
+            ? (res.data.data.data as Array<IProduct & { status: boolean | number }>)
+            : [];
+        const processed = list.map((item) => {
+          let is_active = false;
+          if (typeof item.status === "boolean") is_active = item.status === true;
+          else if (typeof item.status === "number") is_active = item.status === 1;
+          return {
+            ...item,
+            id_category: item.id_category ?? item.id_category,
+            is_active,
+          } as IProduct & { is_active: boolean };
+        });
+        setSearchResults(processed);
+        const lastPage = res.data?.last_page ?? res.data?.data?.last_page;
+        if (typeof lastPage === "number") setTotalPages(lastPage);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setLoadingSearch(false);
+      }
+    }, 300);
+    return () => {
+      clearTimeout(debounced);
+    };
+  }, [filterName, currentPage]);
 
 
   // Cập nhật handleSubmit
@@ -331,11 +418,11 @@ export default function Menu() {
       setImagePreview(null);
       setEditId(null);
       fetchProducts();
-    } catch (err: any) {
+    } catch (err) {
       setModalState({
         open: true,
         title: "Lưu thất bại!",
-        description: err.response?.data?.message || "Có lỗi xảy ra khi lưu sản phẩm.",
+        description: (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Có lỗi xảy ra khi lưu sản phẩm.",
         emoji: <span style={{ fontSize: 28 }}>❌</span>,
         acceptText: "OK",
         onAccept: () => setModalState((prev) => ({ ...prev, open: false })),
@@ -364,6 +451,14 @@ export default function Menu() {
 
   // Bộ lọc sản phẩm theo tên, trạng thái, loại
   const filteredProducts = (() => {
+    // Ưu tiên kết quả tìm kiếm nếu có từ khóa
+    if (filterName.trim() !== "" && searchResults.length > 0) {
+      return searchResults.filter(item => {
+        const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
+        const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
+        return matchStatus && matchCategory;
+      });
+    }
     // Nếu có filter theo trạng thái, sử dụng dữ liệu từ API
     if (filterStatus !== "" && filteredByStatusProducts.length > 0) {
       return filteredByStatusProducts.filter(item => {
@@ -383,7 +478,8 @@ export default function Menu() {
     }
     
     // Nếu không có filter theo API, sử dụng logic cũ
-    return products.filter(item => {
+    const baseList = apiSortedProducts.length > 0 ? apiSortedProducts : products;
+    return baseList.filter(item => {
       const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
       const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
       const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
@@ -423,7 +519,6 @@ export default function Menu() {
     if (openMenuId === id) {
       setOpenMenuId(null);
       setMenuPosition(null);
-      setActionButtonRect(null);
       return;
     }
     const buttonRect = (event.target as HTMLElement).closest("button")?.getBoundingClientRect();
@@ -432,13 +527,11 @@ export default function Menu() {
         top: buttonRect.bottom + 8, // 8px cách nút, bỏ window.scrollY
         left: buttonRect.left + buttonRect.width / 2 - 120, // bỏ window.scrollX
       });
-      setActionButtonRect(buttonRect);
     } else {
       setMenuPosition({
         top: event.clientY,
         left: event.clientX,
       });
-      setActionButtonRect(null);
     }
     setOpenMenuId(id);
   };
@@ -497,16 +590,6 @@ export default function Menu() {
           value={filterName}
           onChange={e => setFilterName(e.target.value)}
         />
-        <select
-          className="border border-gray-300 px-2 h-8 rounded-md text-sm bg-white min-w-[160px]"
-          value={String(filterCategory)}
-          onChange={e => setFilterCategory(e.target.value)}
-        >
-          <option value="">Tất cả loại</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
-        </select>
         <div ref={statusDropdownRef} className="relative">
           <button
             type="button"
@@ -587,7 +670,7 @@ export default function Menu() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Sắp xếp</label>
+              <label className="block text_sm font-medium mb-1">Sắp xếp</label>
               <select
                 className="border px-3 py-2 rounded w-full"
                 value={sortOption}
@@ -646,7 +729,7 @@ export default function Menu() {
                   <label className="block text-sm font-medium mb-1">Giá <span className="text-red-500">*</span></label>
                   <input
                     type="number"
-                    className="border px-3 py-2 rounded w-full"
+                    className="border px-3 py-2 rounded w_full"
                     value={formProduct.price || ""}
                     onChange={e => setFormProduct(f => ({ ...f, price: Number(e.target.value) }))}
                     required
@@ -763,7 +846,7 @@ export default function Menu() {
       {detailModalVisible && selectedProduct && (
         <Modal isOpen={detailModalVisible} onClose={() => setDetailModalVisible(false)} className="max-w-2xl">
           <div className="bg-white rounded-xl shadow p-6">
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify_between items-start mb-4">
               <h3 className="text-xl font-bold">Chi tiết món ăn</h3>
               <button
                 onClick={() => setDetailModalVisible(false)}
@@ -862,7 +945,7 @@ export default function Menu() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05] ">
-                  {loading || loadingStatusFilter || loadingCategoryFilter ? (
+                  {loading || loadingStatusFilter || loadingCategoryFilter || loadingSort || loadingSearch ? (
                     <TableRow className="text-center">
                       <TableCell className="text-center py-6">
                         Đang tải dữ liệu...

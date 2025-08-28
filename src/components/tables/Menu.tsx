@@ -50,6 +50,10 @@ export default function Menu() {
   const [sortOption, setSortOption] = useState<
     "default" | "price_asc" | "price_desc" | "name_asc" | "name_desc" | "sold_desc"
   >("default");
+  const [apiSortedProducts, setApiSortedProducts] = useState<IProduct[]>([]);
+  const [loadingSort, setLoadingSort] = useState(false);
+  const [searchResults, setSearchResults] = useState<IProduct[]>([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
 
   // State cho phân trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -119,7 +123,7 @@ export default function Menu() {
         const cats = res.data as CategoryOption[];
         setCategories(cats.map((cat) => ({ id: cat.id, name: cat.name })));
       }
-    } catch (err) {
+    } catch {
       toast.error("Không thể tải danh mục!");
     }
   };
@@ -158,7 +162,7 @@ export default function Menu() {
       });
       
       setFilteredByStatusProducts(processedList);
-    } catch (error) {
+    } catch {
       toast.error("Không thể tải dữ liệu lọc theo trạng thái!");
       setFilteredByStatusProducts([]);
     } finally {
@@ -195,7 +199,7 @@ export default function Menu() {
       });
       
       setFilteredByCategoryProducts(processedList);
-    } catch (error) {
+    } catch {
       toast.error("Không thể tải dữ liệu lọc theo danh mục!");
       setFilteredByCategoryProducts([]);
     } finally {
@@ -244,7 +248,7 @@ export default function Menu() {
         })
       );
       setTotalPages(res.data?.last_page || 1);
-    } catch (error) {
+    } catch {
       toast.error("Không thể tải danh sách sản phẩm!");
     } finally {
       setLoading(false);
@@ -266,6 +270,93 @@ export default function Menu() {
     fetchProductsByCategory(filterCategory);
   }, [filterCategory, fetchProductsByCategory]);
 
+  // Gọi API sắp xếp theo lựa chọn (giá tăng/giảm, bán chạy)
+  useEffect(() => {
+    const fetchSorted = async () => {
+      // Các trường hợp dùng API sort
+      const useApi = sortOption === "price_asc" || sortOption === "price_desc" || sortOption === "sold_desc";
+      if (!useApi) {
+        setApiSortedProducts([]);
+        return;
+      }
+
+      setLoadingSort(true);
+      try {
+        let url = "";
+        if (sortOption === "price_asc") url = "/products/sort/asc";
+        else if (sortOption === "price_desc") url = "/products/sort/desc";
+        else if (sortOption === "sold_desc") url = "/products/most-sold";
+
+        const res = await apiClientBase.get(url);
+        const list = Array.isArray(res.data)
+          ? (res.data as Array<IProduct & { status: boolean | number }>)
+          : Array.isArray(res.data?.data)
+            ? (res.data.data as Array<IProduct & { status: boolean | number }>)
+            : [];
+
+        const processed = list.map((item) => {
+          let is_active = false;
+          if (typeof item.status === "boolean") is_active = item.status === true;
+          else if (typeof item.status === "number") is_active = item.status === 1;
+          return {
+            ...item,
+            id_category: item.id_category ?? item.id_category,
+            is_active,
+          } as IProduct & { is_active: boolean };
+        });
+        setApiSortedProducts(processed);
+      } catch {
+        toast.error("Không thể sắp xếp dữ liệu!");
+        setApiSortedProducts([]);
+      } finally {
+        setLoadingSort(false);
+      }
+    };
+
+    fetchSorted();
+  }, [sortOption]);
+
+  // Tìm kiếm theo tên bằng API
+  useEffect(() => {
+    const debounced = setTimeout(async () => {
+      const name = filterName.trim();
+      if (name === "") {
+        setSearchResults([]);
+        return;
+      }
+      setLoadingSearch(true);
+      try {
+        const res = await apiClientBase.get(`/products/search?query=${encodeURIComponent(name)}&page=${currentPage}`);
+        const list = Array.isArray(res.data?.data)
+          ? (res.data.data as Array<IProduct & { status: boolean | number }>)
+          : Array.isArray(res.data?.data?.data)
+            ? (res.data.data.data as Array<IProduct & { status: boolean | number }>)
+            : [];
+        const processed = list.map((item) => {
+          let is_active = false;
+          if (typeof item.status === "boolean") is_active = item.status === true;
+          else if (typeof item.status === "number") is_active = item.status === 1;
+          return {
+            ...item,
+            id_category: item.id_category ?? item.id_category,
+            is_active,
+          } as IProduct & { is_active: boolean };
+        });
+        setSearchResults(processed);
+        // cập nhật tổng trang nếu có
+        const lastPage = res.data?.last_page ?? res.data?.data?.last_page;
+        if (typeof lastPage === "number") setTotalPages(lastPage);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setLoadingSearch(false);
+      }
+    }, 300);
+    return () => {
+      clearTimeout(debounced);
+    };
+  }, [filterName, currentPage]);
+
   // Lấy danh sách sản phẩm đã xóa mềm
   const fetchTrashedProducts = async () => {
     setLoadingTrashed(true);
@@ -273,7 +364,7 @@ export default function Menu() {
       const res = await apiClientBase.get("/products/trashed");
       const data = Array.isArray(res.data) ? res.data : [];
       setTrashedProducts(data);
-    } catch (err) {
+    } catch {
       alert("Không thể tải danh sách sản phẩm đã xóa!");
     }
     setLoadingTrashed(false);
@@ -366,7 +457,7 @@ export default function Menu() {
       toast.success("Đã xóa món ăn thành công!");
       // Tải lại dữ liệu sau khi xóa
       fetchProducts();
-    } catch (err) {
+    } catch {
       toast.error("Xóa thất bại!");
     }
   };
@@ -380,7 +471,7 @@ export default function Menu() {
       // Tải lại cả danh sách đã xóa và danh sách chính
       fetchTrashedProducts();
       fetchProducts();
-    } catch (err) {
+    } catch {
       toast.error("Khôi phục thất bại!");
     }
   };
@@ -429,6 +520,14 @@ export default function Menu() {
 
   // Bộ lọc sản phẩm theo tên và trạng thái
   const filteredProducts = (() => {
+    // Nếu có từ khóa tìm kiếm, ưu tiên dữ liệu từ API search
+    if (filterName.trim() !== "" && searchResults.length > 0) {
+      return searchResults.filter(item => {
+        const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
+        const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
+        return matchStatus && matchCategory;
+      });
+    }
     // Nếu có filter theo trạng thái, sử dụng dữ liệu từ API
     if (filterStatus !== "" && filteredByStatusProducts.length > 0) {
       return filteredByStatusProducts.filter(item => {
@@ -448,7 +547,8 @@ export default function Menu() {
     }
     
     // Nếu không có filter theo API, sử dụng logic cũ
-    return products.filter(item => {
+    const baseList = apiSortedProducts.length > 0 ? apiSortedProducts : products;
+    return baseList.filter(item => {
       const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
       const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
       const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
@@ -500,7 +600,7 @@ export default function Menu() {
       setMenuPosition({
         top: buttonRect.bottom + 8, // 8px cách nút, bỏ window.scrollY
         left: buttonRect.left + buttonRect.width / 2 - 120, // bỏ window.scrollX
-      }); 
+      });
     } else {
       setMenuPosition({
         top: event.clientY,
@@ -571,16 +671,6 @@ export default function Menu() {
           value={filterName}
           onChange={e => setFilterName(e.target.value)}
         />
-        <select
-          className="border border-gray-300 px-2 h-8 rounded-md text-sm bg-white min-w-[160px]"
-          value={String(filterCategory)}
-          onChange={e => setFilterCategory(e.target.value)}
-        >
-          <option value="">Tất cả loại</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
-        </select>
         <div ref={statusDropdownRef} className="relative">
           <button
             type="button"
@@ -951,7 +1041,7 @@ export default function Menu() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05] ">
-                  {loading || loadingStatusFilter || loadingCategoryFilter ? (
+                  {loading || loadingStatusFilter || loadingCategoryFilter || loadingSort || loadingSearch ? (
                     <TableRow className="text-center">
                       <TableCell className="text-center py-6">
                         Đang tải dữ liệu...
