@@ -559,7 +559,6 @@ export default function Menu() {
       </div>
       {/* Mobile header + filter icon */}
       <div className="flex items-center justify-between mb-2 md:hidden">
-        <h2 className="text-xl font-bold">Quản lý Menu Món Ăn</h2>
         <button
           className="p-2 rounded-md border bg-white text-sm"
           onClick={() => setMobileFilterOpen(true)}
