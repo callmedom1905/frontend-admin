@@ -528,61 +528,49 @@ export default function Menu() {
 
   // Bộ lọc sản phẩm theo tên và trạng thái
   const filteredProducts = (() => {
-    // Nếu có từ khóa tìm kiếm, ưu tiên dữ liệu từ API search
+    // Xác định danh sách base để lọc
+    let baseList: IProduct[] = [];
+    
+    // Ưu tiên theo thứ tự: search > status > category > sort > default
     if (filterName.trim() !== "" && searchResults.length > 0) {
-      return searchResults.filter(item => {
-        const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
-        const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
-        return matchStatus && matchCategory;
-      });
+      baseList = searchResults;
+    } else if (filterStatus !== "" && filteredByStatusProducts.length > 0) {
+      baseList = filteredByStatusProducts;
+    } else if (filterCategory !== "" && filteredByCategoryProducts.length > 0) {
+      baseList = filteredByCategoryProducts;
+    } else if (apiSortedProducts.length > 0 && 
+        (sortOption === "price_asc" || sortOption === "price_desc" || sortOption === "sold_desc")) {
+      baseList = apiSortedProducts;
+    } else {
+      baseList = products;
     }
-    // Nếu có filter theo trạng thái, sử dụng dữ liệu từ API
-    if (filterStatus !== "" && filteredByStatusProducts.length > 0) {
-      return filteredByStatusProducts.filter(item => {
-        const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
-        const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
-        return matchName && matchCategory;
-      });
-    }
-    
-    // Nếu có filter theo danh mục, sử dụng dữ liệu từ API
-    if (filterCategory !== "" && filteredByCategoryProducts.length > 0) {
-      return filteredByCategoryProducts.filter(item => {
-        const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
-        const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
-        return matchName && matchStatus;
-      });
-    }
-    
-    // Nếu không có filter theo API, sử dụng logic cũ
-    const baseList = apiSortedProducts.length > 0 ? apiSortedProducts : products;
+
+    // Áp dụng các bộ lọc còn lại
     return baseList.filter(item => {
-      const matchName = filterName.trim() === "" || item.name.toLowerCase().includes(filterName.trim().toLowerCase());
-      const matchStatus = filterStatus === "" || (filterStatus === "1" ? item.is_active : !item.is_active);
-      const matchCategory = filterCategory === "" || String(item.id_category) === String(filterCategory);
+      const matchName = filterName.trim() === "" || 
+                       item.name.toLowerCase().includes(filterName.trim().toLowerCase());
+      const matchStatus = filterStatus === "" || 
+                         (filterStatus === "1" ? item.is_active : !item.is_active);
+      const matchCategory = filterCategory === "" || 
+                          String(item.id_category) === String(filterCategory);
       return matchName && matchStatus && matchCategory;
     });
   })();
 
   const sortedProducts = (() => {
-    const list = [...filteredProducts];
-    // Nếu đã dùng API để sắp xếp (giá tăng/giảm, bán chạy), giữ nguyên thứ tự từ API
-    const isApiSort = apiSortedProducts.length > 0 && (
-      sortOption === "price_asc" || sortOption === "price_desc" || sortOption === "sold_desc"
-    );
-    if (isApiSort) return list;
+    // Nếu đang dùng API sort, trả về trực tiếp kết quả từ filteredProducts
+    if (apiSortedProducts.length > 0 && 
+        (sortOption === "price_asc" || sortOption === "price_desc" || sortOption === "sold_desc")) {
+      return filteredProducts;
+    }
 
+    // Xử lý sort local chỉ cho các trường hợp còn lại
+    const list = [...filteredProducts];
     switch (sortOption) {
-      case "price_asc":
-        return list.sort((a, b) => Number(a.price) - Number(b.price));
-      case "price_desc":
-        return list.sort((a, b) => Number(b.price) - Number(a.price));
       case "name_asc":
         return list.sort((a, b) => a.name.localeCompare(b.name));
       case "name_desc":
         return list.sort((a, b) => b.name.localeCompare(a.name));
-      case "sold_desc":
-        return list.sort((a, b) => Number(b.quantity_sold || 0) - Number(a.quantity_sold || 0));
       default:
         return list;
     }
