@@ -129,42 +129,45 @@ export default function Menu() {
   }, []);
 
   // Hàm gọi API lọc theo trạng thái
-  const fetchProductsByStatus = async (status: string) => {
-    if (status === "") {
-      setFilteredByStatusProducts([]);
-      return;
-    }
-    
-    setLoadingStatusFilter(true);
-    try {
-      const url = status === "1" ? "/products/filter/active" : "/products/filter/inactive";
-      const res = await apiClientBase.get(url);
-      const list = Array.isArray(res.data?.data) 
-        ? (res.data.data as Array<IProduct & { status: boolean | number }>)
-        : [];
+  const fetchProductsByStatus = useCallback(async (status: string) => {
+      if (status === "") {
+        setFilteredByStatusProducts([]);
+        return;
+      }
       
-      const processedList = list.map((item) => {
-        let is_active = false;
-        if (typeof item.status === "boolean") {
-          is_active = item.status === true;
-        } else if (typeof item.status === "number") {
-          is_active = item.status === 1;
+      setLoadingStatusFilter(true);
+      try {
+        const url = status === "1" ? "/products/filter/active" : "/products/filter/inactive";
+        const res = await apiClientBase.get(`${url}?page=${currentPage}`);
+        const list = Array.isArray(res.data?.data) 
+          ? (res.data.data as Array<IProduct & { status: boolean | number }>)
+          : [];
+        
+        const processedList = list.map((item) => {
+          let is_active = false;
+          if (typeof item.status === "boolean") {
+            is_active = item.status === true;
+          } else if (typeof item.status === "number") {
+            is_active = item.status === 1;
+          }
+          return {
+            ...item,
+            id_category: item.id_category ?? item.id_category,
+            is_active,
+          } as IProduct & { is_active: boolean };
+        });
+        
+        setFilteredByStatusProducts(processedList);
+        if (typeof res.data?.last_page === "number") {
+          setTotalPages(res.data.last_page);
         }
-        return {
-          ...item,
-          id_category: item.id_category ?? item.id_category,
-          is_active,
-        } as IProduct & { is_active: boolean };
-      });
-      
-      setFilteredByStatusProducts(processedList);
-    } catch {
-      toast.error("Không thể tải dữ liệu lọc theo trạng thái!");
-      setFilteredByStatusProducts([]);
-    } finally {
-      setLoadingStatusFilter(false);
-    }
-  };
+      } catch {
+        toast.error("Không thể tải dữ liệu lọc theo trạng thái!");
+        setFilteredByStatusProducts([]);
+      } finally {
+        setLoadingStatusFilter(false);
+      }
+    }, [currentPage]);
 
   // Hàm gọi API lọc theo danh mục
   const fetchProductsByCategory = async (categoryId: string | number) => {
@@ -266,48 +269,56 @@ export default function Menu() {
 
   // Gọi API sắp xếp theo lựa chọn (giá tăng/giảm, bán chạy)
   useEffect(() => {
-    const fetchSorted = async () => {
-      const useApi = sortOption === "price_asc" || sortOption === "price_desc" || sortOption === "sold_desc";
-      if (!useApi) {
-        setApiSortedProducts([]);
-        return;
-      }
-
-      setLoadingSort(true);
-      try {
-        let url = "";
-        if (sortOption === "price_asc") url = "/products/sort/asc";
-        else if (sortOption === "price_desc") url = "/products/sort/desc";
-        else if (sortOption === "sold_desc") url = "/products/most-sold";
-
-        const res = await apiClientBase.get(url);
-        const list = Array.isArray(res.data)
-          ? (res.data as Array<IProduct & { status: boolean | number }>)
-          : Array.isArray(res.data?.data)
-            ? (res.data.data as Array<IProduct & { status: boolean | number }>)
-            : [];
-
-        const processed = list.map((item) => {
-          let is_active = false;
-          if (typeof item.status === "boolean") is_active = item.status === true;
-          else if (typeof item.status === "number") is_active = item.status === 1;
-          return {
-            ...item,
-            id_category: item.id_category ?? item.id_category,
-            is_active,
-          } as IProduct & { is_active: boolean };
-        });
-        setApiSortedProducts(processed);
-      } catch {
-        toast.error("Không thể sắp xếp dữ liệu!");
-        setApiSortedProducts([]);
-      } finally {
-        setLoadingSort(false);
-      }
-    };
-
-    fetchSorted();
-  }, [sortOption]);
+      const fetchSorted = async () => {
+        // Các trường hợp dùng API sort
+        const useApi = sortOption === "price_asc" || sortOption === "price_desc" || sortOption === "sold_desc";
+        if (!useApi) {
+          setApiSortedProducts([]);
+          return;
+        }
+  
+        setLoadingSort(true);
+        try {
+          let url = "";
+          if (sortOption === "price_asc") url = `/products/sort/asc?page=${currentPage}`;
+          else if (sortOption === "price_desc") url = `/products/sort/desc?page=${currentPage}`;
+          else if (sortOption === "sold_desc") url = "/products/most-sold"; // không phân trang ở backend
+  
+          const res = await apiClientBase.get(url);
+          const list = Array.isArray(res.data)
+            ? (res.data as Array<IProduct & { status: boolean | number }>)
+            : Array.isArray(res.data?.data)
+              ? (res.data.data as Array<IProduct & { status: boolean | number }>)
+              : [];
+  
+          const processed = list.map((item) => {
+            let is_active = false;
+            if (typeof item.status === "boolean") is_active = item.status === true;
+            else if (typeof item.status === "number") is_active = item.status === 1;
+            return {
+              ...item,
+              id_category: item.id_category ?? item.id_category,
+              is_active,
+            } as IProduct & { is_active: boolean };
+          });
+          setApiSortedProducts(processed);
+          // cập nhật tổng trang nếu có phân trang từ API
+          if (typeof res.data?.last_page === "number") {
+            setTotalPages(res.data.last_page);
+          } else if (sortOption === "sold_desc") {
+            // API không phân trang -> để 1 trang (hoặc tính theo limit client nếu có)
+            setTotalPages(1);
+          }
+        } catch {
+          toast.error("Không thể sắp xếp dữ liệu!");
+          setApiSortedProducts([]);
+        } finally {
+          setLoadingSort(false);
+        }
+      };
+  
+      fetchSorted();
+    }, [sortOption, currentPage]);
 
   // Tìm kiếm theo tên bằng API
   useEffect(() => {
@@ -508,6 +519,10 @@ export default function Menu() {
   useEffect(() => {
     setCurrentPage(1);
   }, [filterName, filterStatus]);
+
+  useEffect(() => {
+      setCurrentPage(1);
+    }, [filterCategory, sortOption]);
 
 
   // Handle open menu

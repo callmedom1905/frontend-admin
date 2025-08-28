@@ -141,7 +141,7 @@ export default function Menu() {
     setLoadingStatusFilter(true);
     try {
       const url = status === "1" ? "/products/filter/active" : "/products/filter/inactive";
-      const res = await apiClientBase.get(url);
+      const res = await apiClientBase.get(`${url}?page=${currentPage}`);
       const list = Array.isArray(res.data?.data) 
         ? (res.data.data as Array<IProduct & { status: boolean | number }>)
         : [];
@@ -161,13 +161,16 @@ export default function Menu() {
       });
       
       setFilteredByStatusProducts(processedList);
+      if (typeof res.data?.last_page === "number") {
+        setTotalPages(res.data.last_page);
+      }
     } catch {
       toast.error("Không thể tải dữ liệu lọc theo trạng thái!");
       setFilteredByStatusProducts([]);
     } finally {
       setLoadingStatusFilter(false);
     }
-  }, []);
+  }, [currentPage]);
 
   // Hàm gọi API lọc theo danh mục
   const fetchProductsByCategory = useCallback(async (categoryId: string | number) => {
@@ -223,7 +226,6 @@ export default function Menu() {
     };
   }, [statusDropdownOpen]);
 
-  // Thêm hàm fetchProducts để tái sử dụng
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -259,7 +261,7 @@ export default function Menu() {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Gọi API lọc theo trạng thái khi filterStatus thay đổi
+  // Gọi API lọc theo trạng thái khi filterStatus hoặc trang thay đổi
   useEffect(() => {
     fetchProductsByStatus(filterStatus);
   }, [filterStatus, fetchProductsByStatus]);
@@ -282,9 +284,9 @@ export default function Menu() {
       setLoadingSort(true);
       try {
         let url = "";
-        if (sortOption === "price_asc") url = "/products/sort/asc";
-        else if (sortOption === "price_desc") url = "/products/sort/desc";
-        else if (sortOption === "sold_desc") url = "/products/most-sold";
+        if (sortOption === "price_asc") url = `/products/sort/asc?page=${currentPage}`;
+        else if (sortOption === "price_desc") url = `/products/sort/desc?page=${currentPage}`;
+        else if (sortOption === "sold_desc") url = "/products/most-sold"; // không phân trang ở backend
 
         const res = await apiClientBase.get(url);
         const list = Array.isArray(res.data)
@@ -304,6 +306,13 @@ export default function Menu() {
           } as IProduct & { is_active: boolean };
         });
         setApiSortedProducts(processed);
+        // cập nhật tổng trang nếu có phân trang từ API
+        if (typeof res.data?.last_page === "number") {
+          setTotalPages(res.data.last_page);
+        } else if (sortOption === "sold_desc") {
+          // API không phân trang -> để 1 trang (hoặc tính theo limit client nếu có)
+          setTotalPages(1);
+        }
       } catch {
         toast.error("Không thể sắp xếp dữ liệu!");
         setApiSortedProducts([]);
@@ -313,7 +322,7 @@ export default function Menu() {
     };
 
     fetchSorted();
-  }, [sortOption]);
+  }, [sortOption, currentPage]);
 
   // Tìm kiếm theo tên bằng API
   useEffect(() => {
@@ -557,6 +566,12 @@ export default function Menu() {
 
   const sortedProducts = (() => {
     const list = [...filteredProducts];
+    // Nếu đã dùng API để sắp xếp (giá tăng/giảm, bán chạy), giữ nguyên thứ tự từ API
+    const isApiSort = apiSortedProducts.length > 0 && (
+      sortOption === "price_asc" || sortOption === "price_desc" || sortOption === "sold_desc"
+    );
+    if (isApiSort) return list;
+
     switch (sortOption) {
       case "price_asc":
         return list.sort((a, b) => Number(a.price) - Number(b.price));
@@ -577,6 +592,11 @@ export default function Menu() {
   useEffect(() => {
     setCurrentPage(1);
   }, [filterName, filterStatus]);
+
+  // Reset về trang 1 khi thay đổi danh mục hoặc kiểu sắp xếp
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterCategory, sortOption]);
 
 
   // Thêm hàm xử lý xem chi tiết
@@ -710,8 +730,6 @@ export default function Menu() {
           <option value="default">Mặc định</option>
           <option value="price_asc">Giá tăng dần</option>
           <option value="price_desc">Giá giảm dần</option>
-          <option value="name_asc">Tên A-Z</option>
-          <option value="name_desc">Tên Z-A</option>
           <option value="sold_desc">Bán chạy</option>
         </select>
         <button
@@ -777,8 +795,6 @@ export default function Menu() {
                 <option value="default">Mặc định</option>
                 <option value="price_asc">Giá tăng dần</option>
                 <option value="price_desc">Giá giảm dần</option>
-                <option value="name_asc">Tên A-Z</option>
-                <option value="name_desc">Tên Z-A</option>
                 <option value="sold_desc">Bán chạy</option>
               </select>
             </div>
