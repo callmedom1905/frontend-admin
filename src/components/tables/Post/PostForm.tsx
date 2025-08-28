@@ -1,3 +1,5 @@
+"use client";
+
 // Interface cho response từ AI SEO API
 interface AiSeoResponse {
   success: boolean;
@@ -16,22 +18,18 @@ interface AiSeoResponse {
   canonical_url: string;
 }
 
-"use client";
 import React, { useState, useEffect, useRef } from "react";
 // import React, { useState, useEffect, useRef } from "react";
 import LabelProps from "@/components/form/Label";
 import TextArea from "@/components/form/input/TextAreaPost";
-import { Fancybox as NativeFancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import apiClient from "@/lib/apiClient";
 import "@/styles/posts/post.scss";
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
-import NotificationModal from "./NotificationModal";
 import { ImageSelector } from "@/components/file-manager";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
-import Alert from "@/components/ui/alert/Alert";
 import {
   Save,
   X,
@@ -40,9 +38,6 @@ import {
   FileText,
   Image as ImageIcon,
   Share2,
-  CheckCircle,
-  AlertTriangle,
-  Info,
   ArrowLeft
 } from 'lucide-react';
 import ImprovedSeoAnalysis from './ImprovedSeoAnalysis';
@@ -134,6 +129,9 @@ const PostForm: React.FC<PostFormProps> = ({
 
   // Loading toàn màn hình khi tạo nội dung AI
   const [aiLoading, setAiLoading] = useState<boolean>(false);
+
+  // State cho modal chọn ảnh chèn vào nội dung
+  const [showContentImageSelector, setShowContentImageSelector] = useState(false);
 
   const isEditMode = !!post;
 
@@ -647,6 +645,29 @@ const PostForm: React.FC<PostFormProps> = ({
 
             <div className="bg-white rounded-lg border p-6">
               <h3 className="text-lg font-semibold mb-4">Nội dung bài viết</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <button
+                  type="button"
+                  className="p-2 rounded-md bg-[#FAF3E0] hover:bg-[#D4AF37] text-[#3E2723] shadow border border-[#E6C67A]"
+                  style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Chèn ảnh vào nội dung"
+                  onClick={() => setShowContentImageSelector(true)}
+                >
+                  <ImageIcon className="w-5 h-5" />
+                </button>
+                <ImageSelector
+                  isOpen={showContentImageSelector}
+                  onClose={() => setShowContentImageSelector(false)}
+                  onSelect={(imageUrl: string) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      content: prev.content + `\n<img src="${imageUrl}" alt="Ảnh bài viết" />\n`
+                    }));
+                    setShowContentImageSelector(false);
+                  }}
+                  title="Chọn ảnh chèn vào nội dung"
+                />
+              </div>
               <CKEditor
                 editor={ClassicEditor as any}
                 data={formData.content}
@@ -895,45 +916,6 @@ const PostForm: React.FC<PostFormProps> = ({
             </div>
           </div>
         )}
-
-        {/* SEO Analysis */}
-        {/* {post?.id && (
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Phân tích SEO legacy (chỉ cho bài viết đã lưu)
-              </h3>
-              <Button
-                onClick={() => setShowSeoAnalysis(!showSeoAnalysis)}
-                variant="outline"
-                size="sm"
-              >
-                {showSeoAnalysis ? 'Ẩn' : 'Xem'} phân tích legacy
-              </Button>
-            </div>
-            {showSeoAnalysis && (
-              <div className="text-sm text-gray-600 p-4 bg-gray-50 rounded">
-                Legacy SEO analysis đã được thay thế bằng Real-time analysis ở tab SEO
-              </div>
-            )}
-          </div>
-        )} */}
-
-        {/* Validation Policy Notice */}
-        {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-blue-800 mb-1">Chính sách validation</h4>
-              <p className="text-sm text-blue-700">
-                • <strong>Bắt buộc:</strong> Tiêu đề và nội dung bài viết<br />
-                • <strong>Tùy chọn:</strong> Tất cả các field SEO, mô tả, hình ảnh<br />
-                • <strong>SEO Analysis:</strong> Chỉ là công cụ hỗ trợ tối ưu, không ảnh hưởng đến việc lưu bài viết
-              </p>
-            </div>
-          </div>
-        </div> */}
 
         {/* Form Actions */}
         <div className="flex justify-end gap-2 mt-6">
