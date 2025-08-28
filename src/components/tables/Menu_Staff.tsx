@@ -8,11 +8,9 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-import Image from "next/image";
 import { IProduct } from "../../model/type";
 import { Modal } from "../ui/modal";
 import apiClientBase from "@/lib/apiClient";
-// import { FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
 import NotificationModal from "./NotificationModal";
 import ReactDOM from "react-dom";
@@ -863,14 +861,10 @@ export default function Menu() {
               <div className="col-span-2">
                 <div className="w-full h-64 rounded-lg overflow-hidden bg-gray-100">
                   {selectedProduct.image ? (
-                    <Image
+                    <img
                       width={400}
                       height={300}
-                      src={
-                        selectedProduct.image.startsWith("http") || selectedProduct.image.startsWith("/")
-                          ? selectedProduct.image
-                          : `/images/products/${selectedProduct.image}`
-                      }
+                      src={selectedProduct.image}
                       alt={selectedProduct.name}
                       className="w-full h-full object-cover"
                     />
@@ -966,7 +960,7 @@ export default function Menu() {
                         <TableCell className="px-4 py-3">
                           <div className="w-14 h-14 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
                             {item.image ? (
-                              <Image
+                              <img
                                 width={56}
                                 height={56}
                                 src={

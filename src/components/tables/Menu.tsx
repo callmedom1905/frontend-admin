@@ -8,7 +8,6 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-
 import { IProduct } from "../../model/type";
 import { Modal } from "../ui/modal";
 import apiClientBase from "@/lib/apiClient";
@@ -642,7 +641,6 @@ export default function Menu() {
       {/* Bộ lọc */}
       {/* Bộ lọc mobile */}
       <div className="flex items-center justify-between mb-2 md:hidden">
-        <h2 className="text-xl font-bold">Quản lý Menu Món Ăn</h2>
         <button
           className="p-2 rounded-md border bg-white text-sm"
           onClick={() => setMobileFilterOpen(true)}
