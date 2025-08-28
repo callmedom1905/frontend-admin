@@ -346,7 +346,7 @@ const AppSidebar: React.FC = () => {
           }`}
       >
         <Link href="/">
-          {isExpanded || isHovered ? (
+          {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img
                 className="dark:hidden"
